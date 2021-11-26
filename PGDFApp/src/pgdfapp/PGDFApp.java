@@ -54,12 +54,20 @@ public class PGDFApp {
                         pg.importData(sourceFile);
                         System.out.println("Exportando los datos al archivo ."+format);
                         switch(format){
-                            case "pgdf" -> pg.export(directory, "PGDFApp");
-                            case "gml" -> pg.exportToGraphML(directory, "PGDFApp");
-                            case "ypg" -> pg.exportToYARSPG(directory, "PGDFApp");
-                            case "json" -> pg.exportToJSON(directory, "PGDFApp");
-                            default -> {
-                            }                                
+                            case "pgdf":
+                                pg.export(directory, "PGDFApp");
+                                break;                                
+                            case "gml":
+                                pg.exportToGraphML(directory, "PGDFApp");
+                                break;
+                            case "ypg":
+                                pg.exportToYARSPG(directory, "PGDFApp");
+                                break;
+                            case "json":
+                                pg.exportToJSON(directory, "PGDFApp");
+                                break;
+                            default: 
+                                break;
                         }
                         long endTime   = System.nanoTime();
                         long totalTime = endTime - startTime;
