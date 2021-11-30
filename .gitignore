@@ -1,2 +1,6 @@
 /PGDFApp/nbproject/private/
 /PGDFApp/build/
+/Libreria/PropertyGraphDF-2/nbproject/private/
+/Libreria/PropertyGraphDF-2/build/
+
+*.db

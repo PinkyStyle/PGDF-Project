@@ -6,7 +6,6 @@
 package pgdfapp;
 
 import PropertyGraphDF.PropertyGraph;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.logging.Level;
@@ -22,7 +21,6 @@ public class PGDFApp {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // TODO code application logic here
         
         if(args.length == 0){
             help();
@@ -53,6 +51,9 @@ public class PGDFApp {
                         long startTime = System.nanoTime();
                         pg.importData(sourceFile);
                         System.out.println("Exportando los datos al archivo ."+format);
+                        if(directory.equals(" ")){
+                            directory = "";
+                        }
                         switch(format){
                             case "pgdf":
                                 pg.export(directory, "PGDFApp");
