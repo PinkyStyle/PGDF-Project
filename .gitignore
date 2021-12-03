@@ -6,3 +6,7 @@
 *.db
 
 Libreria/PropertyGraphDF/build/built-jar.properties
+/GDGenerator/build/
+/GDGenerator/nbproject/private/
+
+GDGenerator/.vscode/

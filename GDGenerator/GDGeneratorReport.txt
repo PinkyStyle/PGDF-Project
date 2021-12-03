@@ -1,0 +1,10 @@
+
+Summary of data generation
+- Number of Person nodes: 5000
+- Number of Webpage nodes: 5000
+- Number of Friend edges: 42585
+- Number of Like edges: 42597
+- Total number of nodes: 10000
+- Total number of edges: 85182
+- Execution time: 9394 ms
+
