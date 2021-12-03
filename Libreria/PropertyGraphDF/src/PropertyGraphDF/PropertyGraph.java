@@ -5,6 +5,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -38,7 +40,7 @@ public class PropertyGraph {
                 this.url = "jdbc:sqlite:pgdf.db";
 
                 try (Connection conn = DriverManager.getConnection(url);
-                     Statement stmt = conn.createStatement()) {
+                    Statement stmt = conn.createStatement()) {
 
 
                     String sql = "CREATE TABLE IF NOT EXISTS nodeData (\n"
@@ -1271,11 +1273,6 @@ public class PropertyGraph {
                 BufferedWriter bw = new BufferedWriter(writer)){
                 try (Connection conn = DriverManager.getConnection(this.url)) {
                     Statement stmt = conn.createStatement();
-                    stmt.execute("PRAGMA synchronous = OFF");
-                    stmt.execute("PRAGMA journal_mode = OFF");
-                    stmt.execute("PRAGMA locking_mode = EXCLUSIVE");
-                    stmt.execute("PRAGMA temp_store = MEMORY");
-
                     String sql = "SELECT * FROM nodeData";
                     ResultSet rs = stmt.executeQuery(sql);
                     ResultSetMetaData rsmd = rs.getMetaData();
@@ -1412,8 +1409,323 @@ public class PropertyGraph {
         }
     }
 
-    public void exportToGraphML(String directory, String fileName){
-        File graphFile = new File (directory+fileName+".graphml");
+    public void exportToGraphML(String directory, String fileName) {
+        if(this.storageType.equals("memory")){
+            try( Writer w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".graphml"),"UTF-8"))){
+                //header
+                w.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                w.write("\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"");
+                w.write("\n\txmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+                w.write("\n\txsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns");
+                w.write("\n\thttp://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">");
+                w.write("\n<graph id=\"G\" edgedefault=\"undirected\">\n");
+                StringBuilder sb = new StringBuilder();
+                //props
+                for(String s: this.nodeProperties){
+                    sb.append("<key attr.name=\"").append(s).append("\" attr.type=\"string\" for=\"node\" id=\"").append(s).append("\"/>\n");
+                }
+                w.write(sb.toString());
+                sb.setLength(0);
+                for(String s: this.edgeProperties){
+                    sb.append("<key attr.name=\"").append(s).append("\" attr.type=\"string\" for=\"edge\" id=\"").append(s).append("\"/>\n");
+                }
+                w.write(sb.toString());
+                sb.setLength(0);
+                //nodos
+                for(Node node: this.nodes){
+                    sb.append("<node id=\"").append(node.getId()).append("\">\n");
+                    //label
+                    List<String> labels = node.getLabels();
+                    if(labels.size() > 0 ){
+                        sb.append("<data key=\"labels\">[");
+                        int ready = 0;
+                        for(String l : labels){
+                            sb.append("\"").append(l).append("\"");
+                            ready++;
+                            if(ready < labels.size()){
+                                sb.append(",");
+                            }
+                        }
+                        sb.append("]</data>\n");
+                    }                                        
+                    //props
+                    List<Property> props = node.getProperties();
+                    Iterator<Property> it2 = props.iterator();
+                    while(it2.hasNext()){
+                        Property p = it2.next();                        
+                                          
+                        ArrayList<String> value = new ArrayList(p.getValue());
+                        
+                        if( value.size() >= 1){
+                            sb.append("<data key=\"").append(p.getKey()).append("\">");      
+                            String data = "";
+                            int ready = 0;
+                            if(value.size() > 1){
+                                sb.append("[");
+                            }                            
+                            for(String v : value){
+                                if(v == null){
+                                    sb.append("Null");
+                                }
+                                else if(v.matches("[-+]?[0-9]*\\.?[0-9]+")){
+                                    if(v.contains(".")){
+                                        sb.append(Float.parseFloat(v));
+                                    }
+                                    else{
+                                        sb.append(Integer.parseInt(v));
+                                    }
+                                }
+                                else if(v.equals("true") || v.equals("TRUE")){
+                                    sb.append("True");
+                                }
+                                else if(v.equals("false") || v.equals("FALSE")){
+                                    sb.append("False");
+                                }
+
+                                else{
+                                    sb.append("\"").append(v).append("\"");
+                                }
+                                ready++;
+                                if(value.size()>1 && ready< value.size()){
+                                   sb.append(",");
+                                }
+                            }
+                            if(value.size() > 1){
+                                sb.append("]");
+                            }
+                            sb.append("</data>\n");
+                        }
+                    }
+                    sb.append("</node>\n");
+                    w.write(sb.toString());
+                    sb.setLength(0);
+                }
+                sb.setLength(0);
+                //aristas
+                for(Edge edge:this.edges){
+                    sb.append("<edge id=\"").append(edge.getId()).append("\" ");
+                    if(!edge.getUndirected()){
+                        sb.append("directed=\"true\" ");
+                    }
+                    sb.append("source=\"").append(edge.getSource()).append("\" target=\"").append(edge.getTarget()).append("\"/>\n");
+                    
+                     //label
+                    List<String> labels = edge.getLabels();
+                    if(labels.size() > 0 ){
+                        sb.append("<data key=\"labels\">[");
+                        int ready = 0;
+                        for(String l : labels){
+                            sb.append("\"").append(l).append("\"");
+                            ready++;
+                            if(ready < labels.size()){
+                                sb.append(",");
+                            }
+                        }
+                        sb.append("]</data>\n");
+                    }
+                    //props
+                    List<Property> props = edge.getProperties();
+                    Iterator<Property> it2 = props.iterator();
+                    while(it2.hasNext()){
+                        Property p = it2.next();                        
+                                          
+                        ArrayList<String> value = new ArrayList(p.getValue());
+                        
+                        if( value.size() >= 1){
+                            sb.append("<data key=\"").append(p.getKey()).append("\">");      
+                            String data = "";
+                            int ready = 0;
+                            if(value.size() > 1){
+                                sb.append("[");
+                            }                            
+                            for(String v : value){
+                                if(v == null){
+                                    sb.append("Null");
+                                }
+                                else if(v.matches("[-+]?[0-9]*\\.?[0-9]+")){
+                                    if(v.contains(".")){
+                                        sb.append(Float.parseFloat(v));
+                                    }
+                                    else{
+                                        sb.append(Integer.parseInt(v));
+                                    }
+                                }
+                                else if(v.equals("true") || v.equals("TRUE")){
+                                    sb.append("True");
+                                }
+                                else if(v.equals("false") || v.equals("FALSE")){
+                                    sb.append("False");
+                                }
+
+                                else{
+                                    sb.append("\"").append(v).append("\"");
+                                }
+                                ready++;
+                                if(value.size()>1 && ready< value.size()){
+                                   sb.append(",");
+                                }
+                            }
+                            if(value.size() > 1){
+                                sb.append("]");
+                            }
+                            sb.append("</data>\n");
+                        }
+                    }
+                    sb.append("</edge>\n");
+                    w.write(sb.toString());
+                    sb.setLength(0);
+                }
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            } 
+        }
+        else{
+            try( Writer w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".graphml"),"UTF-8"))){
+                try (Connection conn = DriverManager.getConnection(this.url)) {
+                    w.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+                    w.write("\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\"");
+                    w.write("\n\txmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+                    w.write("\n\txsi:schemaLocation=\"http://graphml.graphdrawing.org/xmlns");
+                    w.write("\n\thttp://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd\">");
+                    w.write("\n<graph id=\"G\" edgedefault=\"undirected\">\n");
+                    
+                    Statement stmt = conn.createStatement();
+                    StringBuilder sb = new StringBuilder();
+                    
+                    //Get node props
+                    String sql = "SELECT * from nodeData LIMIT 0";
+                    ResultSet rs = stmt.executeQuery(sql);
+                    ResultSetMetaData rsmd = rs.getMetaData();                                                                                                                      
+                    for(int i = 1; i <= rsmd.getColumnCount(); i++) {
+                        switch(rsmd.getColumnLabel(i)){
+                            case("nodeID"):
+                            case("nodeLabel"):
+                                break;
+                            default:
+                                sb.append("<key attr.name=\"").append(rsmd.getColumnLabel(i)).append("\" attr.type=\"string\" for=\"node\" id=\"").append(rsmd.getColumnLabel(i)).append("\"/>\n");
+                                break;
+                        }
+                    }
+                    w.write(sb.toString());
+                    sb.setLength(0);
+                    
+                    //get edge props
+                    sql = "SELECT * from edgeData LIMIT 0";
+                    rs = stmt.executeQuery(sql);
+                    rsmd = rs.getMetaData();
+                    for(int i = 1; i <= rsmd.getColumnCount(); i++) {
+                        switch(rsmd.getColumnLabel(i)){
+                            case("edgeID"):
+                            case("edgeLabel"):
+                            case("_undirected"):
+                            case("_source"):
+                            case("_target"):
+                                break;
+                            default:
+                                sb.append("<key attr.name=\"").append(rsmd.getColumnLabel(i)).append("\" attr.type=\"string\" for=\"edge\" id=\"").append(rsmd.getColumnLabel(i)).append("\"/>\n");
+                                break;
+                        }
+                    }
+                    w.write(sb.toString());
+                    sb.setLength(0);
+                    
+                    //get nodes
+                    sql = "SELECT * FROM nodeData";
+                    rs = stmt.executeQuery(sql);
+                    rsmd = rs.getMetaData();
+                    while(rs.next()){
+                        sb.append("<node id=\"").append(rs.getString(1)).append("\">\n");
+                        sb.append("<data key=\"labels\">").append(rs.getString(2)).append("</data>\n");
+                        for(int i = 3; i <= rsmd.getColumnCount();i++){
+                            String data = rs.getString(i);
+                            if(data != null){
+                                sb.append("<data key=\"").append(rsmd.getColumnLabel(i)).append("\">");      
+                                if(data.equals("Null")){
+                                    sb.append("Null");
+                                }
+                                else if(data.equals("true")){
+                                    sb.append("True");
+                                }
+                                else if(data.equals("false")){
+                                    sb.append("False");
+                                }
+                                else if(data.matches("[-+]?[0-9]*\\.?[0-9]+")) {
+                                    if (data.contains(".")) {
+                                        sb.append(Float.parseFloat(data));
+                                    } else {
+                                        sb.append(Integer.parseInt(data));
+                                    }
+                                }
+                                else if(data.startsWith("[") && data.endsWith("]")){
+                                    sb.append(data);
+                                }
+                                else{
+                                    sb.append("\"").append(data).append("\"");
+                                }
+                                sb.append("</data>\n");
+                            }
+                        }
+                        sb.append("</node>\n");
+                        w.write(sb.toString());
+                        sb.setLength(0);
+                    }
+                    
+                    //get edges
+                    sql = "SELECT * FROM edgeData";
+                    rs = stmt.executeQuery(sql);
+                    rsmd = rs.getMetaData();
+                    while(rs.next()){
+                        sb.append("<edge id=\"").append(rs.getString(1)).append("\" ");
+                        if(!rs.getString(3).equals("True")){
+                            sb.append("directed=\"true\" ");
+                        }
+                        sb.append("source=\"").append(rs.getString(4)).append("\" target=\"").append(rs.getString(5)).append("\"/>\n");
+
+                         //label
+                        String labels = rs.getString(2);
+                        if(!labels.equals("[]")){
+                            sb.append("<data key=\"labels\">").append(labels).append("</data>\n");
+                        }
+                        for(int i = 6; i <= rsmd.getColumnCount();i++){
+                            String data = rs.getString(i);
+                            if(data != null){
+                                sb.append("<data key=\"").append(rsmd.getColumnLabel(i)).append("\">");      
+                                if(data.equals("Null")){
+                                    sb.append("Null");
+                                }
+                                else if(data.equals("true")){
+                                    sb.append("True");
+                                }
+                                else if(data.equals("false")){
+                                    sb.append("False");
+                                }
+                                else if(data.matches("[-+]?[0-9]*\\.?[0-9]+")) {
+                                    if (data.contains(".")) {
+                                        sb.append(Float.parseFloat(data));
+                                    } else {
+                                        sb.append(Integer.parseInt(data));
+                                    }
+                                }
+                                else if(data.startsWith("[") && data.endsWith("]")){
+                                    sb.append(data);
+                                }
+                                else{
+                                    sb.append("\"").append(data).append("\"");
+                                }
+                                sb.append("</data>\n");
+                            }
+                        }
+                        sb.append("</edge>\n");
+                        w.write(sb.toString());
+                        sb.setLength(0);
+                    }                    
+                } catch (SQLException e) {
+                    System.out.println(e.getMessage());
+                }
+            } catch(IOException e){
+                System.out.println(e.getMessage());
+            }
+        }
     }
 
     public void importData(String dataFile) throws IOException, SQLException {
