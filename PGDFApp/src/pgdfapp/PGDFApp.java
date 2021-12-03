@@ -36,25 +36,61 @@ public class PGDFApp {
             System.out.println("Storage type can only be 'memory' or 'disk'.");
             return;
         }
+        long startTime = System.nanoTime();
         pg.importData(input);
+        long endTime   = System.nanoTime();
+        long totalTime = endTime - startTime;
+        System.out.print("import time: "+(totalTime/1000000) +"ms");
         switch(args[2]){
             case "pgdf":
+                startTime = System.nanoTime();
                 pg.export("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export pgdf time: "+(totalTime/1000000) +"ms");
                 break;
             case "ypg":
-                pg.exportToYARSPG("","output");
+                startTime = System.nanoTime();
+                pg.exportToYARSPG("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export ypg time: "+(totalTime/1000000) +"ms");
                 break;
             case "gml":
+                startTime = System.nanoTime();
                 pg.exportToGraphML("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export gml time: "+(totalTime/1000000) +"ms");
                 break;
             case "json":
+                startTime = System.nanoTime();
                 pg.exportToJSON("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export json time: "+(totalTime/1000000) +"ms");
                 break;
             case "all":
+                startTime = System.nanoTime();
                 pg.export("", "output");
-                pg.exportToYARSPG("","output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export pgdf time: "+(totalTime/1000000) +"ms");
+                startTime = System.nanoTime();
+                pg.exportToYARSPG("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export ypg time: "+(totalTime/1000000) +"ms");
+                startTime = System.nanoTime();
                 pg.exportToGraphML("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export gml time: "+(totalTime/1000000) +"ms");
+                startTime = System.nanoTime();
                 pg.exportToJSON("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.print("export json time: "+(totalTime/1000000) +"ms");
                 break;
             default:
                 System.out.println("Output type can only be 'pgdf', 'gml', 'ypg' or 'json'.");
