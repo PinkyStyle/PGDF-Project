@@ -8,8 +8,6 @@ package pgdfapp;
 import PropertyGraphDF.PropertyGraph;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -20,92 +18,56 @@ public class PGDFApp {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, SQLException {
         
-        if(args.length == 0){
+        if(args.length != 3){
             help();
             return;
         }
+        String input = args[0];
         PropertyGraph pg = null;
-        String sourceFile = String.valueOf(args[0]);
-        try{
-            if(args[1].equals("-m")){
-                System.out.println("Creando grafo en memoria.");
-                pg = new PropertyGraph("memory");
-            }
-            else if(args[1].equals("-d")){
-                System.out.println("Creando grafo en disco.");
-                pg = new PropertyGraph("disk");
-            }
-            else{
-                System.out.println("Falta tipo de almacenamiento (-m o -d).");
-                return;
-            }
-            
-            if(args.length > 2){
-                if(args[2].equals("-e")){                    
-                    String format = String.valueOf(args[3]);
-                    if(format.equals("pgdf") || format.equals("gml") || format.equals("json") || format.equals("ypg")){
-                        String directory = String.valueOf(args[4]);
-                        System.out.println("Importando datos desde el archivo ingresado...");
-                        long startTime = System.nanoTime();
-                        pg.importData(sourceFile);
-                        System.out.println("Exportando los datos al archivo ."+format);
-                        if(directory.equals(" ")){
-                            directory = "";
-                        }
-                        switch(format){
-                            case "pgdf":
-                                pg.export(directory, "PGDFApp");
-                                break;                                
-                            case "gml":
-                                pg.exportToGraphML(directory, "PGDFApp");
-                                break;
-                            case "ypg":
-                                pg.exportToYARSPG(directory, "PGDFApp");
-                                break;
-                            case "json":
-                                pg.exportToJSON(directory, "PGDFApp");
-                                break;
-                            default: 
-                                break;
-                        }
-                        long endTime   = System.nanoTime();
-                        long totalTime = endTime - startTime;
-                        System.out.println("Tiempo utilizado: " + (totalTime/1000000) +" ms");
-                    }
-                    else{
-                        System.out.println("Formato de exportacion no válido.");
-                    }
-                }
-                else{
-                    System.out.println("Parametro ingresado no válido.");
-                }
-            }
+        if(args[1].equals("memory")){
+            pg = new PropertyGraph("memory");
         }
-        catch(IndexOutOfBoundsException e){
-            System.out.println("ERROR: Faltan parametros.");
+        else if(args[1].equals("disk")){
+            pg = new PropertyGraph("disk");
+        }
+        else{
+            System.out.println("Storage type can only be 'memory' or 'disk'.");
             return;
-        } catch (IOException ex) {
-            Logger.getLogger(PGDFApp.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(PGDFApp.class.getName()).log(Level.SEVERE, null, ex);
         }
+        pg.importData(input);
+        switch(args[2]){
+            case "pgdf":
+                pg.export("", "output");
+                break;
+            case "ypg":
+                pg.exportToYARSPG("","output");
+                break;
+            case "gml":
+                pg.exportToGraphML("", "output");
+                break;
+            case "json":
+                pg.exportToJSON("", "output");
+                break;
+            case "all":
+                pg.export("", "output");
+                pg.exportToYARSPG("","output");
+                pg.exportToGraphML("", "output");
+                pg.exportToJSON("", "output");
+                break;
+            default:
+                System.out.println("Output type can only be 'pgdf', 'gml', 'ypg' or 'json'.");
+                break;
+        }        
     }
        
     public static void help(){
-        System.out.println("PGDFApp es una aplicacion por linea de comandos que permite el manejo de archivos .pgdf, principalmente para la transformacion a otros formatos.");
-        System.out.println("Ademas, esta aplicacion puede utilizarse para verificar si un archivo .pgdf correponde al formato utilizado\n");        
-        
-        System.out.println("Entradas oblgatorias:");
-        System.out.println("Example.pgdf (el directorio del archivo .pgdf a utilizar como entrada)");
-        System.out.println("-m o -d (indica el tipo de almacenamiento de los datos para el grafo con propiedades)");
-        System.out.println("Prefiera utilizar -d para archivos de gran tamaño o para grafos con muchas propiedades");
-        
-        System.out.println("Comandos opcionales:");
-        System.out.println("    Para exportar...");
-        System.out.println("    -e (formato) (directorio archivo generado)");
-        System.out.println("    Formatos Disponibles: pgdf (formato por defecto, en caso de no indicar uno), gml (graphML), ypg (YARS-PG) y json (formato JSON aceptable por Neo4J)");
-       
+        System.out.println("Execute instruction and arguments:");
+        System.out.println("java -jar <input> <storage> <output>");
+        System.out.println("input: path to the input file. it must be a .pgdf file.");
+        System.out.println("storage: indicate the storage type to use (memory or disk)");
+        System.out.println("output: indicate the format to the output file. The only available formats are pgdf, gml, "
+                + "json and ypg. If you want to export to all of them, use 'all' as an output. (just used on test)");
     }
 }

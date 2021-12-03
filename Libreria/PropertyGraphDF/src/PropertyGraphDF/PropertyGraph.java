@@ -5,13 +5,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import ANTLR4Files.GraphGenerator;
-import ANTLR4Files.ParserToDatabase;
-import ANTLR4Files.PropertyGraphDFLexer;
-import ANTLR4Files.PropertyGraphDFParser;
-import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.ParseCancellationException;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 /**
  *
@@ -36,7 +29,7 @@ public class PropertyGraph {
         this.edgeProperties = new ArrayList<>();
     }
 
-    public PropertyGraph(String storageType){
+        public PropertyGraph(String storageType){
         if(storageType.equals("memory") || storageType.equals("disk")){
             this.storageType = storageType;
             if(this.storageType.equals("disk")){
@@ -506,8 +499,7 @@ public class PropertyGraph {
             }
         }
         else{
-            try(FileWriter writer = new FileWriter(graphFile);
-            BufferedWriter bw = new BufferedWriter(writer)){
+            try(FileWriter writer = new FileWriter(graphFile)){
                 String header = "";
                 String sql;
                 int numNodeProps = 0;
@@ -665,140 +657,6 @@ public class PropertyGraph {
                 }
             }
         }
-
-/*        File nodeFile = new File(directory+nodeFileName+".pgdf");
-        try (FileWriter writer = new FileWriter(nodeFile)) {
-            String firstLine = "@id;@label;";
-
-            for(String name: this.nodeProperties){
-                firstLine = firstLine+name+";";
-            }
-            writer.write(firstLine+"\n");
-
-            for(Node node: this.getNodes()){
-                String declaration = node.formatNode();
-                for(String prop: this.nodeProperties){
-                    if(node.hasProp(prop)){
-                        ArrayList<String> value = new ArrayList(node.getValue(prop));
-                        if(value.isEmpty()){
-                            declaration = declaration + "";
-                        }
-                        else if( value.size() >= 1){
-                            String data = "";
-                            int ready = 0;
-                            if(value.size() <= 1){
-                                data = "";  
-                            }
-                            else{
-                                data = "[";
-                            }
-                            for(String v : value){
-                                if(v == null){
-                                    data = data + "N";
-                                }
-                                else if(v.matches("[-+]?[0-9]*\\.?[0-9]+")){
-                                    if(v.contains(".")){
-                                        data = data + Float.parseFloat(v);
-                                    }
-                                    else{
-                                        data = data + Integer.parseInt(v);
-                                    }
-                                }
-                                else if(v.equals("true") || v.equals("TRUE")){
-                                    data = data + "T";
-                                }
-                                else if(v.equals("false") || v.equals("FALSE")){
-                                    data = data + "F";
-                                }
-
-                                else{
-                                    data = data + "\"" + v + "\"";
-                                }
-                                ready++;
-                                if(value.size()>1 && ready< value.size()){
-                                    data = data+",";
-                                }
-                            }
-                            if(value.size() > 1){
-                                data = data+"]";
-                            }
-                            declaration = declaration + data + ";";
-                        }
-                    }
-                    else{
-                        declaration = declaration + ";";
-                    }
-                }
-                writer.write(declaration+"\n");
-            }
-        }
-
-        File edgeFile = new File(directory+edgeFileName+".pgdf");
-        try (FileWriter writer = new FileWriter(edgeFile)) {
-            List<String> properties = this.edgeProperties;
-            String firstLine = "@id;@undirected;@label;@source;@target;";
-
-            for(String name: properties){
-                firstLine = firstLine+name+";";
-            }
-            writer.write(firstLine+"\n");
-
-            for(Edge edge: this.edges){
-                String declaration = edge.formatEdge();
-                for(String prop: this.edgeProperties){
-                    if(edge.hasProp(prop)){
-                        ArrayList<String> value = new ArrayList(edge.getValue(prop));
-                        if(value.isEmpty()){
-                            declaration = declaration + "";
-                        }
-                        else if( value.size() >= 1){
-                            String data = "";
-                            int ready = 0;
-                            if(value.size() == 1){
-                                data = "";
-                            }
-                            else{
-                                data = "[";
-                            }
-                            for(String v : value){
-                                if(v.matches("[-+]?[0-9]*\\.?[0-9]+")){
-                                    if(v.contains(".")){
-                                        data = data + Float.parseFloat(v);
-                                    }
-                                    else{
-                                        data = data + Integer.parseInt(v);
-                                    }
-                                }
-                                else if(v.equals("true") || v.equals("TRUE")){
-                                    data = data + "T";
-                                }
-                                else if(v.equals("false") || v.equals("FALSE")){
-                                    data = data + "F";
-                                }
-                                else if(v.equals(null)){
-                                    data = data + "N";
-                                }
-                                else{
-                                    data = data + "\"" + v + "\"";
-                                }
-                                ready++;
-                                if(value.size()>1 && ready< value.size()){
-                                    data = data+",";
-                                }
-                            }
-                            if(value.size() > 1){
-                                data = data+"]";
-                            }
-                            declaration = declaration + data + ";";
-                        }
-                    }
-                    else{
-                        declaration = declaration + ";";
-                    }
-                }
-                writer.write(declaration+"\n");
-            }
-        }*/
     }
 
     public void exportToJSON(String directory, String fileName) throws IOException {
@@ -1028,7 +886,7 @@ public class PropertyGraph {
         }
         else{
             try (FileWriter writer = new FileWriter(graphFile);
-                 BufferedWriter bw = new BufferedWriter(writer)) {
+                 Writer bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"));) {
                 try (Connection conn = DriverManager.getConnection(this.url)) {
                     Statement stmt = conn.createStatement();
                     stmt.execute("PRAGMA synchronous = OFF");
@@ -1048,11 +906,10 @@ public class PropertyGraph {
                         ids.add(rs.getString(1));
                         String declaration = "{\"type\":\"node\",\"id\":\"" + idCount + "\"";
                         String label = rs.getString(2);
-                        if(label != null){
-                            if(label.equals("[]")){
+                        if (label != null) {
+                            if (label.equals("[]")) {
                                 declaration = declaration + ",\"labels\":[\"NODE\"]";
-                            }
-                            else if(label.split("").length > 3){
+                            } else if (label.split("").length > 3) {
                                 /*String aux = label.substring(1,label.length()-1);
                                 String[] names = aux.split(",");
                                 for(int i = 0; i < names.length; i++){
@@ -1065,10 +922,10 @@ public class PropertyGraph {
                                     }
                                 }
                                 declaration = declaration +"]";*/
-                                declaration += ",\"labels\":"+label;
+                                declaration += ",\"labels\":" + label;
                             }
                         }
-                        if(rsmd.getColumnCount() > 2){
+                        if (rsmd.getColumnCount() > 2) {
                             declaration = declaration + ",\"properties\":{";
                             int notNull = 0;
                             for (int i = 3; i <= rsmd.getColumnCount(); i++) {
@@ -1076,12 +933,11 @@ public class PropertyGraph {
                                 if (value != null) {
                                     notNull++;
                                     String data = "\"" + rsmd.getColumnLabel(i) + "\":";
-                                    if(value.startsWith("[") && value.endsWith("]")){
+                                    if (value.startsWith("[") && value.endsWith("]")) {
                                         //pasarlo a lista
-                                        if(value.equals("[]")){
+                                        if (value.equals("[]")) {
                                             data = data + "[]";
-                                        }
-                                        else if(value.split("").length > 3){
+                                        } else if (value.split("").length > 3) {
                                             /*String aux = value.substring(1,value.length()-1);
                                             String[] names = aux.split(",");
                                             for(int j = 0; j < names.length; j++){
@@ -1096,27 +952,22 @@ public class PropertyGraph {
                                             data = data +"]";*/
                                             data += value;
                                         }
-                                    }
-                                    else if(value.matches("[-+]?[0-9]*\\.?[0-9]+")){
-                                        if(value.contains(".")){
+                                    } else if (value.matches("[-+]?[0-9]*\\.?[0-9]+")) {
+                                        if (value.contains(".")) {
                                             data = data + Float.parseFloat(value);
-                                        }
-                                        else{
+                                        } else {
                                             data = data + Integer.parseInt(value);
                                         }
-                                    }
-                                    else if(value.equals("true") || value.equals("TRUE")){
+                                    } else if (value.equals("true") || value.equals("TRUE")) {
                                         data = data + "T";
-                                    }
-                                    else if(value.equals("false") || value.equals("FALSE")){
+                                    } else if (value.equals("false") || value.equals("FALSE")) {
                                         data = data + "F";
-                                    }
-                                    else{
+                                    } else {
                                         data = data + "\"" + value + "\"";
                                     }
                                     declaration = declaration + data;
                                 }
-                                if(i+1 <= rsmd.getColumnCount() && rs.getString(i+1) != null && notNull > 0){
+                                if (i + 1 <= rsmd.getColumnCount() && rs.getString(i + 1) != null && notNull > 0) {
                                     declaration = declaration + ",";
                                 }
                             }
@@ -1133,19 +984,18 @@ public class PropertyGraph {
                     rs = stmt.executeQuery(sql);
                     rsmd = rs.getMetaData();
                     while (rs.next()) {
-                        String id = "{\"id\":\"" ;
+                        String id = "{\"id\":\"";
                         String declaration = "\",\"type\":\"relationship\",";
                         String label = rs.getString(2);
 
                         boolean undirected = false;
-                        if(rs.getInt(3) == 0){
+                        if (rs.getInt(3) == 0) {
                             undirected = false;
-                        }
-                        else if(rs.getInt(3) == 1){
+                        } else if (rs.getInt(3) == 1) {
                             undirected = true;
                         }
                         String props = "";
-                        if(rsmd.getColumnCount() > 5){
+                        if (rsmd.getColumnCount() > 5) {
                             props = props + ",\"properties\":{";
                             int notNull = 0;
                             for (int i = 6; i <= rsmd.getColumnCount(); i++) {
@@ -1153,12 +1003,11 @@ public class PropertyGraph {
                                 if (value != null) {
                                     notNull++;
                                     String data = "\"" + rsmd.getColumnLabel(i) + "\":";
-                                    if(value.startsWith("[") && value.endsWith("]")){
+                                    if (value.startsWith("[") && value.endsWith("]")) {
                                         //pasarlo a lista
-                                        if(value.equals("[]")){
+                                        if (value.equals("[]")) {
                                             data = data + "[]";
-                                        }
-                                        else if(value.split("").length > 3){
+                                        } else if (value.split("").length > 3) {
                                             /*String aux = value.substring(1,value.length()-1);
                                             String[] names = aux.split(",");
                                             for(int j = 0; j < names.length; j++){
@@ -1173,27 +1022,22 @@ public class PropertyGraph {
                                             data = data +"]";*/
                                             data += value;
                                         }
-                                    }
-                                    else if(value.matches("[-+]?[0-9]*\\.?[0-9]+")){
-                                        if(value.contains(".")){
+                                    } else if (value.matches("[-+]?[0-9]*\\.?[0-9]+")) {
+                                        if (value.contains(".")) {
                                             data = data + Float.parseFloat(value);
-                                        }
-                                        else{
+                                        } else {
                                             data = data + Integer.parseInt(value);
                                         }
-                                    }
-                                    else if(value.equals("true") || value.equals("TRUE")){
+                                    } else if (value.equals("true") || value.equals("TRUE")) {
                                         data = data + "T";
-                                    }
-                                    else if(value.equals("false") || value.equals("FALSE")){
+                                    } else if (value.equals("false") || value.equals("FALSE")) {
                                         data = data + "F";
-                                    }
-                                    else{
+                                    } else {
                                         data = data + "\"" + value + "\"";
                                     }
                                     props = props + data;
                                 }
-                                if(i+1 <= rsmd.getColumnCount() && rs.getString(i+1) != null && notNull > 0){
+                                if (i + 1 <= rsmd.getColumnCount() && rs.getString(i + 1) != null && notNull > 0) {
                                     props = props + ",";
                                 }
                             }
@@ -1204,8 +1048,6 @@ public class PropertyGraph {
                         String idSource = rs.getString(4);
                         String target = ":{";
                         String idTarget = rs.getString(5);
-                       /* boolean s = false;
-                        boolean t = false;*/
 
                         source = source + "\"id\":\"" + ids.indexOf(idSource) + "\"}";
                         target = target + "\"id\":\"" + ids.indexOf(idTarget) + "\"}";
@@ -1217,7 +1059,7 @@ public class PropertyGraph {
                             bw.write(finalLine + "\n");
                             idCount++;
                             if (undirected) {
-                                finalLine = id + idCount + declaration + actualLabel + props +"\"start\"" + target + ",\"end\"" + source + "}";
+                                finalLine = id + idCount + declaration + actualLabel + props + "\"start\"" + target + ",\"end\"" + source + "}";
                                 bw.write(finalLine + "\n");
                                 idCount++;
                             }
@@ -1226,12 +1068,12 @@ public class PropertyGraph {
                             String[] names = aux.split(",");
                             for (int i = 0; i < names.length; i++) {
                                 actualLabel = "\"label\":";
-                                actualLabel = actualLabel  + names[i] ;
+                                actualLabel = actualLabel + names[i];
                                 finalLine = id + idCount + declaration + actualLabel + props + "\"start\"" + source + ",\"end\"" + target + "}";
                                 bw.write(finalLine + "\n");
                                 idCount++;
                                 if (undirected) {
-                                    finalLine = id + idCount + declaration + actualLabel + props +"\"start\"" + target + ",\"end\"" + source + "}";
+                                    finalLine = id + idCount + declaration + actualLabel + props + "\"start\"" + target + ",\"end\"" + source + "}";
                                     bw.write(finalLine + "\n");
                                     idCount++;
                                 }
@@ -1425,7 +1267,148 @@ public class PropertyGraph {
             }
         }
         else{
+            try( FileWriter writer = new FileWriter(graphFile);
+                BufferedWriter bw = new BufferedWriter(writer)){
+                try (Connection conn = DriverManager.getConnection(this.url)) {
+                    Statement stmt = conn.createStatement();
+                    stmt.execute("PRAGMA synchronous = OFF");
+                    stmt.execute("PRAGMA journal_mode = OFF");
+                    stmt.execute("PRAGMA locking_mode = EXCLUSIVE");
+                    stmt.execute("PRAGMA temp_store = MEMORY");
 
+                    String sql = "SELECT * FROM nodeData";
+                    ResultSet rs = stmt.executeQuery(sql);
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    StringBuilder sb = new StringBuilder();
+                    while(rs.next()){
+                        sb.setLength(0);
+                        //add id
+                        sb.append(rs.getString(1));
+
+                        //add labels
+                        sb.append(rs.getString(2).replaceAll("\"",""));
+
+                        //add props if it has
+                        if(rsmd.getColumnCount() > 2){
+                            int props = 0;
+                            for(int i = 3; i <= rsmd.getColumnCount(); i++){
+                                String value = rs.getString(i);
+                                if(value != null && !value.isBlank()){
+                                    if(props == 0){
+                                        props ++;
+                                        sb.append(":{");
+                                    }
+                                    sb.append(rsmd.getColumnLabel(i)+":");
+                                    if (value.matches("[-+]?[0-9]*\\.?[0-9]+")){
+                                        if(value.contains(".")){
+                                            sb.append(Float.parseFloat(value));
+                                        }
+                                        else{
+                                            sb.append(Integer.parseInt(value));
+                                        }
+                                    }
+                                    else if(value.equals("True")){
+                                        sb.append("true");
+                                    }
+                                    else if(value.equals("False")){
+                                        sb.append("false");
+                                    }
+                                    else if(value.equals("Null")){
+                                        sb.append("null");
+                                    }
+                                    else if(value.startsWith("[") && value.endsWith("]")){
+                                        sb.append(value);
+                                    }
+                                    else{
+                                        sb.append("\""+value+"\"");
+                                    }
+                                }
+                                if(i+1 <= rsmd.getColumnCount() && rs.getString(i + 1) != null && props > 0){
+                                    sb.append(",");
+                                }
+                            }
+                            sb.append("}\n");
+                        }
+                        bw.write(sb.toString());
+                    }
+
+                    sql = "SELECT * FROM edgeData";
+                    rs = stmt.executeQuery(sql);
+                    rsmd = rs.getMetaData();
+
+                    while(rs.next()){
+                        sb.setLength(0);
+                        //add source
+                        sb.append("("+ rs.getString(4) + ")-[");
+                        //add labels
+
+                        if(!rs.getString(2).equals("[]")){
+                            String labels = rs.getString(2).replaceAll("\"","");
+                            sb.append(labels, 1, labels.length()-1);
+                        }
+                        //add props
+                        if(rsmd.getColumnCount() > 5){
+                            int props = 0;
+                            for(int i = 6; i <= rsmd.getColumnCount(); i++){
+                                String value = rs.getString(i);
+                                if(value != null && !value.isBlank()){
+                                    if(props == 0){
+                                        props ++;
+                                        sb.append(" {");
+                                    }
+                                    sb.append(rsmd.getColumnLabel(i)+":");
+                                    if (value.matches("[-+]?[0-9]*\\.?[0-9]+")){
+                                        if(value.contains(".")){
+                                            sb.append(Float.parseFloat(value));
+                                        }
+                                        else{
+                                            sb.append(Integer.parseInt(value));
+                                        }
+                                    }
+                                    else if(value.equals("True")){
+                                        sb.append("true");
+                                    }
+                                    else if(value.equals("False")){
+                                        sb.append("false");
+                                    }
+                                    else if(value.equals("Null")){
+                                        sb.append("null");
+                                    }
+                                    else if(value.startsWith("[") && value.endsWith("]")){
+                                        sb.append(value);
+                                    }
+                                    else{
+                                        sb.append("\""+value+"\"");
+                                    }
+                                }
+                                if(i+1 <= rsmd.getColumnCount() && rs.getString(i + 1) != null && props > 0){
+                                    sb.append(",");
+                                }
+                            }
+                            if(props > 0){
+                                sb.append("}");
+                            }
+                        }
+
+                        //add direction
+                        if(rs.getString(3).equals("False")){
+                            sb.append("]->");
+                        }
+                        else{
+                            sb.append("]-");
+                        }
+                        //add target
+
+                        sb.append("("+ rs.getString(5) + ")");
+                        bw.write(sb.toString()+"\n");
+                    }
+                } catch (SQLException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+            catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
         }
     }
 
@@ -1616,6 +1599,8 @@ public class PropertyGraph {
                     Statement stmt = conn.createStatement();
                     stmt.execute("PRAGMA synchronous = OFF");
                     stmt.execute("PRAGMA journal_mode = OFF");
+/*                    stmt.execute("PRAGMA locking_mode = EXCLUSIVE");
+                    stmt.execute("PRAGMA temp_store = MEMORY");*/
                     conn.setAutoCommit(false);
 
                     int numNodeProps = 0;
