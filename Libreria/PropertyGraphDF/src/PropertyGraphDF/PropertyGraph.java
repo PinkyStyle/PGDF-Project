@@ -662,227 +662,168 @@ public class PropertyGraph {
     }
 
     public void exportToJSON(String directory, String fileName) throws IOException {
-        File graphFile = new File (directory+fileName+".json");
         if(this.storageType.equals("memory")) {
-            try (FileWriter writer = new FileWriter(graphFile)) {
-
-                int count = 0;
+            try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"))) {
+                
+                StringBuilder sb = new StringBuilder();
                 for (Node n : this.nodes) {
-                    String line = "{\"type\":\"node\",\"id\":\"" + count + "\",";
+                    sb.setLength(0);
+                    sb.append("{\"type\":\"node\",\"id\":\"").append(n.getId()).append("\",");
 
                     if (n.getLabels().size() > 0) {
-                        line = line + "\"labels\":[";
+                        sb.append("\"labels\":[");
                         List<String> labels = n.getLabels();
                         if (labels.size() == 1) {
-                            line = line + "\"" + labels.get(0) + "\"";
+                            sb.append("\"").append(labels.get(0)).append("\"");
                         } else {
                             for (String s : labels) {
-                                line = line + "\"" + s + "\",";
+                                sb.append("\"").append(s).append("\",");
                             }
-                            line = line.substring(0, line.length() - 1);
+                            sb.delete(sb.length()-1,sb.length());
+                        
                         }
-                        line = line + "],";
+                        sb.append("],");
+                    }
+                    else{
+                        sb.append("\"labels\":[\"NODE\"],");
                     }
                     if (n.getProperties().size() > 0) {
-                        line = line + "\"properties\":{";
+                        sb.append("\"properties\":{");
                         List<Property> props = n.getProperties();
                         if (props.size() > 0) {
-                            String propData = "";
                             for (int i = 0; i < props.size(); i++) {
                                 Property p = props.get(i);
-                                propData = propData + "\"" + p.getKey() + "\":";
+                                sb.append("\"").append(p.getKey()).append("\":");
                                 if (p.getValue() == null) {
-                                    propData = propData + "null";
+                                    sb.append("null");
                                 } else if (p.getValue().size() > 0) {
                                     //propData = propData + "\"";
                                     int valueSize = 0;
                                     for (int j = 0; j < p.getValue().size(); j++) {
                                         if (j + 1 < p.getValue().size()) {
-                                            propData = propData + "[";
+                                            sb.append("[");
                                         }
                                         if (p.getValue().get(j) == null) {
-                                            propData = propData + "null";
+                                            sb.append("null");
                                             valueSize++;
                                         } else if (p.getValue().get(j).matches("[-+]?[0-9]*\\.?[0-9]+")) {
                                             if (p.getValue().get(j).contains(".")) {
-                                                propData = propData + Float.parseFloat(p.getValue().get(j));
+                                                sb.append(Float.parseFloat(p.getValue().get(j)));
                                             } else {
-                                                propData = propData + Integer.parseInt(p.getValue().get(j));
+                                                sb.append(Integer.parseInt(p.getValue().get(j)));
                                             }
                                             valueSize++;
                                         } else if (p.getValue().get(j).equals("true") || p.getValue().get(j).equals("TRUE") || p.getValue().get(j).equals("True")) {
-                                            propData = propData + "true";
+                                            sb.append("true");
                                             valueSize++;
                                         } else if (p.getValue().get(j).equals("false") || p.getValue().get(j).equals("FALSE") || p.getValue().get(j).equals("False")) {
-                                            propData = propData + "false";
+                                            sb.append("false");
                                             valueSize++;
                                         } else {
-                                            propData = propData + "\"" + p.getValue().get(j) + "\"";
+                                            sb.append("\"").append(p.getValue().get(j)).append("\"");
                                             valueSize++;
                                         }
                                         if (valueSize < p.getValue().size()) {
-                                            propData = propData + ",";
+                                            sb.append(",");
                                         } else if (valueSize > 1) {
-                                            propData = propData + "]";
+                                            sb.append("]");
                                         }
                                     }
                                 } else {
-                                    propData = propData + "";
+                                    sb.append("");
                                 }
                                 if (i + 1 < props.size()) {
-                                    propData = propData + ",";
+                                    sb.append(",");
                                 }
-                            }
-                            line = line + propData;
+                            }                            
                         }
-                        line = line + "}";
+                        sb.append("}");
                     }
-                    line = line + "}";
-                    writer.write(line + "\n");
-                    count++;
+                    sb.append("}");
+                    writer.write(sb.toString() + "\n");
                 }
-                count = 0;
-                boolean multipleLabels = false;
+                sb.setLength(0);
+                int idCount = 0;
                 for (Edge e : this.edges) {
-                    String line = "{\"id\":\"" + count + "\",\"type\":\"relationship\",";
+                    sb.setLength(0);
+                    sb.append("\",\"type\":\"relationship\",");
 
-                    if (e.getLabels().size() > 0) {
-                        line = line + "\"label\":";
-                        List<String> labels = e.getLabels();
-                        line = line + "\"" + labels.get(0) + "\"";
-                        if (e.getLabels().size() > 1) {
-                            multipleLabels = true;
-                        }
-                        line = line + ",";
-                    } else {
-                        line = line + "\"label\":\"EDGE\",";
-                    }
+                    StringBuilder pb = new StringBuilder();
                     if (e.getProperties().size() > 0) {
-                        line = line + "\"properties\":{";
+                        pb.append(",\"properties\":{");
                         List<Property> props = e.getProperties();
                         if (props.size() > 0) {
-                            String propData = "";
                             for (int i = 0; i < props.size(); i++) {
                                 Property p = props.get(i);
-                                propData = propData + "\"" + p.getKey() + "\":";
+                                pb.append("\"").append(p.getKey()).append("\":");
                                 if (p.getValue() == null) {
-                                    propData = propData + "null";
+                                    pb.append("null");
                                 } else if (p.getValue().size() > 0) {
-                                    //propData = propData + "\"";
                                     int valueSize = 0;
                                     for (int j = 0; j < p.getValue().size(); j++) {
                                         if (j + 1 < p.getValue().size()) {
-                                            propData = propData + "[";
+                                            pb.append("[");
                                         }
                                         if (p.getValue().get(j) == null) {
-                                            propData = propData + "null";
+                                            pb.append("null");
                                             valueSize++;
                                         } else if (p.getValue().get(j).matches("[-+]?[0-9]*\\.?[0-9]+")) {
                                             if (p.getValue().get(j).contains(".")) {
-                                                propData = propData + Float.parseFloat(p.getValue().get(j));
+                                                pb.append(Float.parseFloat(p.getValue().get(j)));
                                             } else {
-                                                propData = propData + Integer.parseInt(p.getValue().get(j));
+                                                pb.append(Integer.parseInt(p.getValue().get(j)));
                                             }
                                             valueSize++;
                                         } else if (p.getValue().get(j).equals("true") || p.getValue().get(j).equals("TRUE") || p.getValue().get(j).equals("True")) {
-                                            propData = propData + "true";
+                                            pb.append("true");
                                             valueSize++;
                                         } else if (p.getValue().get(j).equals("false") || p.getValue().get(j).equals("FALSE") || p.getValue().get(j).equals("False")) {
-                                            propData = propData + "false";
+                                            pb.append("false");
                                             valueSize++;
                                         } else {
-                                            propData = propData + "\"" + p.getValue().get(j) + "\"";
+                                            pb.append("\"").append(p.getValue().get(j)).append("\"");
                                             valueSize++;
                                         }
                                         if (valueSize < p.getValue().size()) {
-                                            propData = propData + ",";
+                                            pb.append(",");
                                         } else if (valueSize > 1) {
-                                            propData = propData + "]";
+                                            pb.append("]");
                                         }
                                     }
                                 } else {
-                                    propData = propData + "";
+                                    pb.append("");
                                 }
                                 if (i + 1 < props.size()) {
-                                    propData = propData + ",";
+                                    pb.append(",");
                                 }
                             }
-                            line = line + propData + "},";
+                            pb.append("},");
                         }
                     }
-
-                    String start = e.getSource();
-                    line = line + "\"start\":{";
-                    for (int i = 0; i < this.nodes.size(); i++) {
-                        if (this.nodes.get(i).getId().equals(start)) {
-                            line = line + "\"id\":" + "\"" + i + "\",";
-                            if (this.nodes.get(i).getLabels().size() > 0) {
-                                line = line + "\"labels\":[";
-                                List<String> labels = this.nodes.get(i).getLabels();
-                                if (labels.size() == 1) {
-                                    line = line + "\"" + labels.get(0) + "\"";
-                                } else {
-                                    for (String s : labels) {
-                                        line = line + "\"" + s + "\",";
-                                    }
-                                    line = line.substring(0, line.length() - 1);
-                                }
-                                line = line + "]},";
-                            } else {
-                                line = line.substring(0, line.length() - 1) + "},";
-                            }
+                    else{
+                        pb.append(",\"properties\":{},");
+                    }
+                    
+                    String source = ":{\"id\":\"" + e.getSource() + "\"}";
+                    String target = ":{\"id\":\"" + e.getTarget() + "\"}";
+                    if (e.getLabels()== null || e.getLabels().isEmpty()){           
+                        writer.write("{\"id\":\""+idCount+sb.toString()+"\"label\":\"EDGE\""+pb.toString()+ "\"start\"" + source + ",\"end\"" + target + "}"+"\n");
+                        idCount++;
+                        if(e.getUndirected() != null && e.getUndirected()){
+                            writer.write("{\"id\":\""+idCount+sb.toString()+"\"label\":\"EDGE\""+pb.toString()+ "\"start\"" + target + ",\"end\"" + source + "}"+"\n");
+                            idCount++;
                         }
                     }
-                    String end = e.getTarget();
-                    line = line + "\"end\":{";
-                    for (int i = 0; i < this.nodes.size(); i++) {
-                        if (this.nodes.get(i).getId().equals(end)) {
-                            line = line + "\"id\":" + "\"" + i + "\",";
-                            if (this.nodes.get(i).getLabels().size() > 0) {
-                                line = line + "\"labels\":[";
-                                List<String> labels = this.nodes.get(i).getLabels();
-                                if (labels.size() == 1) {
-                                    line = line + "\"" + labels.get(0) + "\"";
-                                } else {
-                                    for (String s : labels) {
-                                        line = line + "\"" + s + "\",";
-                                    }
-                                    line = line.substring(0, line.length() - 1);
-                                }
-                                line = line + "]}";
-                            } else {
-                                line = line.substring(0, line.length() - 1) + "}";
+                    else{
+                        for(String s: e.getLabels()){
+                            writer.write("{\"id\":\""+idCount+sb.toString()+"\"label\":\""+s+"\""+pb.toString()+ "\"start\"" + source + ",\"end\"" + target + "}"+"\n");
+                            idCount++;
+                            if(e.getUndirected() != null && e.getUndirected()){
+                                writer.write("{\"id\":\""+idCount+sb.toString()+"\"label\":\""+s+"\""+pb.toString()+ "\"start\"" + target + ",\"end\"" + source + "}"+"\n");
+                                idCount++;
                             }
                         }
                     }
-                    line = line + "}";
-                    //writer.write(line+"\n");
-                    ArrayList<String> duplicateLabels = new ArrayList<>();
-                    duplicateLabels.add(line);
-                    if (multipleLabels) {
-                        int numLabels = e.getLabels().size();
-                        for (int i = 1; i < numLabels; i++) {
-                            String newLine = line.replaceFirst("\"label\":\"" + e.getLabels().get(0) + "\"", "\"label\":\"" + e.getLabels().get(i) + "\"");
-                            newLine = newLine.replaceFirst("\"" + count + "\"", "\"" + (count + i) + "\"");
-                            duplicateLabels.add(newLine);
-                        }
-                        count = count + numLabels - 1;
-                    }
-                    if (e.getUndirected() != null && e.getUndirected()) {
-                        int numLines = duplicateLabels.size();
-                        for (int i = 0; i < numLines; i++) {
-                            String newLine = duplicateLabels.get(i);
-                            newLine = newLine.replace("\"end\"", "\"start\"");
-                            newLine = newLine.replaceFirst("\"start\"", "\"end\"");
-                            newLine = newLine.replaceFirst("\"" + (count - numLines + 1) + "\"", "\"" + (count + 1) + "\"");
-                            duplicateLabels.add(newLine);
-                            count++;
-                        }
-                    }
-                    for (String s : duplicateLabels) {
-                        writer.write(s + "\n");
-                    }
-                    count++;
                 }
             }
         }
@@ -934,12 +875,15 @@ public class PropertyGraph {
                                         } else {
                                             sb.append(Integer.parseInt(value));
                                         }
-                                    } else if (value.equals("true") || value.equals("TRUE")) {
-                                        sb.append("T");
-                                    } else if (value.equals("false") || value.equals("FALSE")) {
-                                        sb.append("F");
-                                    } else {
+                                    } else if (value.equals("true") || value.equals("TRUE")|| value.equals("True")) {
+                                        sb.append("true");
+                                    } else if (value.equals("false") || value.equals("FALSE") || value.equals("False")) {
+                                        sb.append("false");
+                                    } else if( value.equals("Null")){
+                                        sb.append("null");
+                                    } else{
                                         sb.append("\"").append(value).append("\"");
+                               
                                     }
                                 }
                                 if (i + 1 <= rsmd.getColumnCount() && rs.getString(i + 1) != null && notNull > 0) {
@@ -993,9 +937,9 @@ public class PropertyGraph {
                                             props.append(Integer.parseInt(value));
                                         }
                                     } else if (value.equals("true") || value.equals("TRUE")) {
-                                        props.append("T");
+                                        props.append("true");
                                     } else if (value.equals("false") || value.equals("FALSE")) {
-                                        props.append("F");
+                                        props.append("false");
                                     } else {
                                         props.append("\"").append(value).append("\"");
                                     }                                    
