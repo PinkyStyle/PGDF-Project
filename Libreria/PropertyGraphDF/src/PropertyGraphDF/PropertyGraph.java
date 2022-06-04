@@ -1,8 +1,10 @@
 package PropertyGraphDF;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -31,7 +33,7 @@ public class PropertyGraph {
         this.edgeProperties = new ArrayList<>();
     }
 
-        public PropertyGraph(String storageType){
+    public PropertyGraph(String storageType){
         if(storageType.equals("memory") || storageType.equals("disk")){
             this.storageType = storageType;
             if(this.storageType.equals("disk")){
@@ -406,7 +408,9 @@ public class PropertyGraph {
                                             data = data + Float.parseFloat(v);
                                         }
                                         else{
-                                            data = data + Integer.parseInt(v);
+                                            //data = data + Integer.parseInt(v);
+                                            BigInteger num = new BigInteger(v);
+                                            data = data + num;
                                         }
                                     }
                                     else if(v.equals("true") || v.equals("TRUE")){
@@ -466,7 +470,9 @@ public class PropertyGraph {
                                             data = data + Float.parseFloat(v);
                                         }
                                         else{
-                                            data = data + Integer.parseInt(v);
+                                            //data = data + Integer.parseInt(v);
+                                            BigInteger num = new BigInteger(v);
+                                            data = data + num;
                                         }
                                     }
                                     else if(v.equals("true") || v.equals("TRUE")){
@@ -578,7 +584,9 @@ public class PropertyGraph {
                                     if (data.contains(".")) {
                                         declaration = declaration + Float.parseFloat(data) +";";
                                     } else {
-                                        declaration = declaration + Integer.parseInt(data) +";";
+                                        //declaration = declaration + Integer.parseInt(data) +";";
+                                        BigInteger num = new BigInteger(data);
+                                        declaration = declaration + num + ";";
                                     }
                                 }
                                 else if(data.startsWith("[") && data.endsWith("]")){
@@ -637,7 +645,9 @@ public class PropertyGraph {
                                     if (data.contains(".")) {
                                         declaration = declaration + Float.parseFloat(data) +";";
                                     } else {
-                                        declaration = declaration + Integer.parseInt(data) +";";
+                                        //declaration = declaration + Integer.parseInt(data) +";";
+                                        BigInteger num = new BigInteger(data);
+                                        declaration = declaration + num + ";";
                                     }
                                 }
                                 else if(data.startsWith("[") && data.endsWith("]")){
@@ -710,7 +720,9 @@ public class PropertyGraph {
                                             if (p.getValue().get(j).contains(".")) {
                                                 sb.append(Float.parseFloat(p.getValue().get(j)));
                                             } else {
-                                                sb.append(Integer.parseInt(p.getValue().get(j)));
+                                                //sb.append(Integer.parseInt(p.getValue().get(j)));
+                                                BigInteger num = new BigInteger(p.getValue().get(j));
+                                                sb.append(num);
                                             }
                                             valueSize++;
                                         } else if (p.getValue().get(j).equals("true") || p.getValue().get(j).equals("TRUE") || p.getValue().get(j).equals("True")) {
@@ -771,7 +783,9 @@ public class PropertyGraph {
                                             if (p.getValue().get(j).contains(".")) {
                                                 pb.append(Float.parseFloat(p.getValue().get(j)));
                                             } else {
-                                                pb.append(Integer.parseInt(p.getValue().get(j)));
+                                                //pb.append(Integer.parseInt(p.getValue().get(j)));
+                                                BigInteger num = new BigInteger(p.getValue().get(j));
+                                                pb.append(num);
                                             }
                                             valueSize++;
                                         } else if (p.getValue().get(j).equals("true") || p.getValue().get(j).equals("TRUE") || p.getValue().get(j).equals("True")) {
@@ -873,7 +887,9 @@ public class PropertyGraph {
                                         if (value.contains(".")) {
                                             sb.append(Float.parseFloat(value));
                                         } else {
-                                            sb.append(Integer.parseInt(value));
+                                            //sb.append(Integer.parseInt(value));
+                                            BigInteger num = new BigInteger(value);
+                                            sb.append(num);
                                         }
                                     } else if (value.equals("true") || value.equals("TRUE")|| value.equals("True")) {
                                         sb.append("true");
@@ -934,7 +950,9 @@ public class PropertyGraph {
                                         if (value.contains(".")) {
                                             props.append(Float.parseFloat(value));
                                         } else {
-                                            props.append(Integer.parseInt(value));
+                                            //props.append(Integer.parseInt(value));
+                                            BigInteger num = new BigInteger(value);
+                                            props.append(num);
                                         }
                                     } else if (value.equals("true") || value.equals("TRUE")) {
                                         props.append("true");
@@ -1042,7 +1060,9 @@ public class PropertyGraph {
                                         data = data + Float.parseFloat(v);
                                     }
                                     else{
-                                        data = data + Integer.parseInt(v);
+                                        //data = data + Integer.parseInt(v);
+                                        BigInteger num = new BigInteger(v);
+                                        data = data + num;
                                     }
                                 }
                                 else if(v.equals("true") || v.equals("TRUE")){
@@ -1090,13 +1110,15 @@ public class PropertyGraph {
                             line += l +" ";
                         }
                     }
+                   
 
                     List<Property> props = e.getProperties();
+                    count = 0;
                     if(!props.isEmpty()){
                         line += "{";
-                        Iterator<Property> it2 = props.iterator();
-                        while(it2.hasNext()){
-                            Property p = it2.next();
+                        //Iterator<Property> it2 = props.iterator();
+                        for(int i = 0; i< props.size(); i++ ){                         
+                            Property p = props.get(i);
                             line += p.getKey()+":";
                             count++;
 
@@ -1122,7 +1144,9 @@ public class PropertyGraph {
                                             data = data + Float.parseFloat(v);
                                         }
                                         else{
-                                            data = data + Integer.parseInt(v);
+                                            //data = data + Integer.parseInt(v);
+                                            BigInteger num = new BigInteger(v);
+                                            data = data + num;
                                         }
                                     }
                                     else if(v.equals("true") || v.equals("TRUE")){
@@ -1201,7 +1225,9 @@ public class PropertyGraph {
                                             sb.append(Float.parseFloat(value));
                                         }
                                         else{
-                                            sb.append(Integer.parseInt(value));
+                                            //sb.append(Integer.parseInt(value));
+                                            BigInteger num = new BigInteger(value);
+                                            sb.append(num);
                                         }
                                     }
                                     else if(value.equals("True")){
@@ -1259,7 +1285,9 @@ public class PropertyGraph {
                                             sb.append(Float.parseFloat(value));
                                         }
                                         else{
-                                            sb.append(Integer.parseInt(value));
+                                            //sb.append(Integer.parseInt(value));
+                                            BigInteger num = new BigInteger(value);
+                                            sb.append(num);
                                         }
                                     }
                                     else if(value.equals("True")){
@@ -1372,7 +1400,9 @@ public class PropertyGraph {
                                         sb.append(Float.parseFloat(v));
                                     }
                                     else{
-                                        sb.append(Integer.parseInt(v));
+                                        //sb.append(Integer.parseInt(v));
+                                        BigInteger num = new BigInteger(v);
+                                        sb.append(num);
                                     }
                                 }
                                 else if(v.equals("true") || v.equals("TRUE")){
@@ -1447,7 +1477,9 @@ public class PropertyGraph {
                                         sb.append(Float.parseFloat(v));
                                     }
                                     else{
-                                        sb.append(Integer.parseInt(v));
+                                        //sb.append(Integer.parseInt(v));
+                                        BigInteger num = new BigInteger(v);
+                                        sb.append(num);
                                     }
                                 }
                                 else if(v.equals("true") || v.equals("TRUE")){
@@ -1553,7 +1585,9 @@ public class PropertyGraph {
                                     if (data.contains(".")) {
                                         sb.append(Float.parseFloat(data));
                                     } else {
-                                        sb.append(Integer.parseInt(data));
+                                        //sb.append(Integer.parseInt(data));
+                                        BigInteger num = new BigInteger(data);
+                                        sb.append(num);
                                     }
                                 }
                                 else if(data.startsWith("[") && data.endsWith("]")){
@@ -1603,7 +1637,9 @@ public class PropertyGraph {
                                     if (data.contains(".")) {
                                         sb.append(Float.parseFloat(data));
                                     } else {
-                                        sb.append(Integer.parseInt(data));
+                                        //sb.append(Integer.parseInt(data));
+                                        BigInteger num = new BigInteger(data);
+                                        sb.append(num);
                                     }
                                 }
                                 else if(data.startsWith("[") && data.endsWith("]")){
@@ -1625,6 +1661,230 @@ public class PropertyGraph {
             } catch(IOException e){
                 System.out.println(e.getMessage());
             }
+        }
+    }
+    
+    public void exportToGraphSon (String directory, String fileName) throws IOException {
+        if(this.storageType.equals("memory")){
+            try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"))) {
+                
+                StringBuilder sb = new StringBuilder();
+                
+                //Graph Info
+                sb.setLength(0);
+                sb.append("{\n");
+                sb.append("\t"+"\"graph\": {\n");
+                sb.append("\t\t"+"\"mode\":\"NORMAL\",\n");                
+                sb.append("\t\t"+"\"vertices\": [\n");
+                
+                writer.write(sb.toString());
+                
+                //Node Info
+                
+                /*
+                    props...
+                    ...
+                    ...
+                    "_id": ID,
+                    "_type": "vertex"
+                */
+                String outTabs = "\t\t\t";
+                String inTabs = "\t\t\t\t";
+                if(this.nodes.size() > 0){
+                    for(int i = 0; i < this.nodes.size(); i++){
+                        Node n = this.nodes.get(i);
+                        sb.setLength(0);                        
+                        sb.append(outTabs).append("{\n");
+                        
+                        for(Property p: n.getProperties()){                            
+                            // "KEY": "VALUE",                            
+                            sb.append(inTabs).append("\"").append(p.getKey()).append("\": \"").append(p.getValue()).append("\",\n");
+                        }
+                        sb.append(inTabs).append("\"_id\": \"").append(n.getId()).append("\",\n");
+                        sb.append(inTabs).append("\"_type\": \"vertex\"\n");                                                
+                        sb.append(outTabs).append("}");
+                        
+                        if(i+1 < this.nodes.size()){
+                            writer.write(sb.toString() + ",\n");
+                        }
+                        else{
+                            writer.write(sb.toString() +"\n");
+                        }
+                    }                    
+                }
+                writer.write("\t\t" + "],\n");
+                writer.write("\t\t" + "\"edges\": [\n");
+                
+                
+                //Edge Info
+                /*
+                    props...
+                    ...
+                    ...
+                    ...
+                    "_id": "ID",
+                    "_type": "edge",
+                    "_outV": "1",
+                    "_inV": "2",
+                    "_label": "knows"
+                */
+                if(this.edges.size() > 0){
+                    for(int i = 0; i < this.edges.size(); i++){
+                        Edge e = this.edges.get(i);
+                        sb.setLength(0);
+                        sb.append(outTabs).append("{\n");
+                        for(Property p: e.getProperties()){                            
+                            // "KEY": "VALUE",                            
+                            sb.append(inTabs).append("\"").append(p.getKey()).append("\": \"").append(p.getValue()).append("\",\n");
+                        }
+                        sb.append(inTabs).append("\"_id\": \"").append(e.getId()).append("\",\n");
+                        sb.append(inTabs).append("\"_type\": \"edge\",\n");     
+                        
+                        sb.append(inTabs).append("\"_outV\": \"").append(e.getSource()).append("\",\n");
+                        sb.append(inTabs).append("\"_inV\": \"").append(e.getTarget()).append("\",\n");
+                        sb.append(inTabs).append("\"_label\": \"").append(e.getLabels()).append("\"\n");
+                        
+                        sb.append(outTabs).append("}");
+                        
+                        if(i+1 < this.edges.size()){
+                            writer.write(sb.toString() + ",\n");
+                        }
+                        else{
+                            writer.write(sb.toString() +"\n");
+                        }
+                    }
+                }
+                
+                writer.write("\t\t" + "]\n");
+                writer.write("\t" + "}\n");
+                writer.write("}");
+            }
+        }
+        else{
+            
+        }
+    }
+    
+    public void exportToGraphSon3(String directory, String fileName) throws IOException{
+        if(this.storageType.equals("memory")){
+            try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"))) {
+                StringBuilder sb = new StringBuilder();
+                int count32 = 0;                         
+                for(Node n: this.nodes){
+                    sb.setLength(0);
+                    //Inicia declaracion de nodo
+                    sb.append("{\"id\":\"").append(n.getId()).append("\",");
+                    sb.append("\"label\":\"").append(n.getLabels()).append("\"");
+                    
+                    writer.write(sb.toString());
+                    
+                    //Declaracion de aristas
+                    
+                    sb.setLength(0);
+                    List<Edge> inE = new ArrayList<>();
+                    List<Edge> outE = new ArrayList<>();
+                    for(int i = 0; i< this.edges.size(); i++){
+                        Edge e = this.edges.get(i);
+                        if(e.getSource().equals(n.getId())){
+                            outE.add(e);
+                        }
+                        if(e.getTarget().equals(n.getId())){
+                            inE.add(e);
+                        }
+                    }
+                        //Aristas que llegan                        
+                    
+                    if(!inE.isEmpty()){
+                        List<String> writedLabel = new ArrayList<>();
+                        sb.append(",");
+                        sb.append("\"inE\":{");
+                        
+                        for(Edge e: inE){
+                            List<String> labels = e.getLabels();
+                            
+                            for(String l: labels){
+                                if(writedLabel.contains(l)){
+                                    break;
+                                }
+                                sb.append("\"").append(l).append("\":[");
+                                sb.append("{\"id\":\"").append(e.getId()).append("\",\"outV\":\"").append(e.getSource()).append("\"");
+                                if(!e.getProperties().isEmpty()){
+                                    sb.append(",\"properties\":");
+                                    List<Property> props = e.getProperties();
+                                    for(int i = 0; i < props.size(); i++){
+                                        Property p = props.get(i);
+                                        sb.append("\"").append(p.getKey()).append("\":[");
+                                        sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(count32).append("}");;
+                                        count32+=1;
+                                        sb.append(",\"value\":\"").append(p.getValue()).append("\"}]");
+
+                                        if(i+1 < props.size()){
+                                            sb.append(",");
+                                        }
+                                    }
+                                    sb.append("}");
+                                }
+                                
+                                for(int i = 1; i < inE.size(); i++){
+                                    Edge e2 = inE.get(i);
+                                    List<String> labels2 = e2.getLabels();
+                                    if(labels2.contains(l)){
+                                        sb.append("{\"id\":\"").append(e2.getId()).append("\",\"outV\":\"").append(e2.getSource()).append("\"");
+                                        if(!e2.getProperties().isEmpty()){
+                                            sb.append(",\"properties\":");
+                                            List<Property> props2 = e2.getProperties();
+                                            for(int j = 0; j < props2.size(); j++){
+                                                Property p = props2.get(j);
+                                                sb.append("\"").append(p.getKey()).append("\":[");
+                                                sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(count32).append("}");;
+                                                count32+=1;
+                                                sb.append(",\"value\":\"").append(p.getValue()).append("\"}]");
+
+                                                if(j+1 < props2.size()){
+                                                    sb.append(",");
+                                                }
+                                            }
+                                            sb.append("}");
+                                        }
+                                    }
+                                }
+                                
+                                writedLabel.add(l);
+                            }
+                            sb.append("]}");
+                        }
+                        writer.write(sb.toString());
+                    }
+                        //Aristas que salen
+                    
+                    //Declaracion de Propiedades del nodo
+                                        
+                    sb.setLength(0);
+                    List<Property> props = n.getProperties();
+                    if(!props.isEmpty()){
+                       sb.append(",\"properties\":{");
+                       
+                       for(int i = 0; i < props.size(); i++){
+                           Property p = props.get(i);
+                           sb.append("\"").append(p.getKey()).append("\":[");
+                           sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(count32).append("}");;
+                           count32+=1;
+                           sb.append(",\"value\":\"").append(p.getValue()).append("\"}]");
+                           
+                           if(i+1 < props.size()){
+                               sb.append(",");
+                           }
+                       }
+                       
+                       sb.append("}");
+                    }
+                    sb.append("}\n");
+                    writer.write(sb.toString());
+                }
+            }
+        }
+        else{
+            
         }
     }
 
@@ -1715,6 +1975,7 @@ public class PropertyGraph {
                                             pv.add(data[i]);
                                         }
                                         else{
+                                            System.out.println(data[i]);
                                             throw new IllegalArgumentException("Not valid value at line "+ numLine+ "value "+(i+2));
                                         }
                                     }
@@ -1865,13 +2126,13 @@ public class PropertyGraph {
 
                         }
                         else {
-                            String[] values = line.split(";",-1);
+                            String[] values = line.split(";");
                             if(values.length < (2+numNodeProps +3)){
                                 //ES NODO
                                 String id = values[0].substring(1,values[0].length()-1);
                                 pstmtN.setString(1,id);
                                 pstmtN.setString(2,values[1]);
-                                for(int i = 2; i < values.length -1; i++){
+                                for(int i = 2; i < values.length ; i++){
                                     if(!values[i].isBlank()){
                                         if(values[i].equals("T")){
                                             pstmtN.setString(i+1,"True");
@@ -1893,12 +2154,13 @@ public class PropertyGraph {
                                     else{
                                         pstmtN.setNull(i+1,java.sql.Types.NULL);
                                     }
-                                }
+                                }                                
                                 pstmtN.executeUpdate();
                             }
                             else{
                                 //ES ARISTA
                                 String id = values[0].substring(1,values[0].length()-1);
+                                pstmtE.clearParameters();
                                 pstmtE.setString(1,id);
                                 pstmtE.setString(2,values[1]);
 
@@ -1908,7 +2170,7 @@ public class PropertyGraph {
                                 else{
                                     pstmtE.setString(3,"False");
                                 }
-
+                                
                                 StringBuilder source = new StringBuilder().append(values[3+numNodeProps],1,values[3+numNodeProps].length()-1);
                                 pstmtE.setString(4,source.toString());
 
@@ -1916,7 +2178,7 @@ public class PropertyGraph {
                                 pstmtE.setString(5,target.toString());
 
                                 int count = 6;
-                                for(int i = 5+numNodeProps; i < values.length -1; i++){
+                                for(int i = 5+numNodeProps; i < values.length; i++){
                                     if(!values[i].isBlank()){
                                         if(values[i].equals("T")){
                                             pstmtE.setString(count,"True");

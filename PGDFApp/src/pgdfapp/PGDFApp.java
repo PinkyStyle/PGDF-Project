@@ -17,6 +17,8 @@ public class PGDFApp {
 
     /**
      * @param args the command line arguments
+     * @throws java.io.IOException
+     * @throws java.sql.SQLException
      */
     public static void main(String[] args) throws IOException, SQLException {
         
@@ -70,6 +72,20 @@ public class PGDFApp {
                 totalTime = endTime - startTime;
                 System.out.println("export json time: "+(totalTime/1000000) +"ms");
                 break;
+            case "graphson":
+                startTime = System.nanoTime();
+                pg.exportToGraphSon("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.println("export graphson time: "+(totalTime/1000000) +"ms");
+                break;
+            case "graphson3":
+                startTime = System.nanoTime();
+                pg.exportToGraphSon3("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.println("export graphson time: "+(totalTime/1000000) +"ms");
+                break;
             case "all":
                 startTime = System.nanoTime();
                 pg.export("", "output");
@@ -91,6 +107,11 @@ public class PGDFApp {
                 endTime   = System.nanoTime();
                 totalTime = endTime - startTime;
                 System.out.println("export json time: "+(totalTime/1000000) +"ms");
+//                startTime = System.nanoTime();
+//                pg.exportToGraphSon("", "output");
+//                endTime   = System.nanoTime();
+//                totalTime = endTime - startTime;
+//                System.out.println("export graphson time: "+(totalTime/1000000) +"ms");
                 break;
             default:
                 System.out.println("Output type can only be 'pgdf', 'gml', 'ypg' or 'json'.");
