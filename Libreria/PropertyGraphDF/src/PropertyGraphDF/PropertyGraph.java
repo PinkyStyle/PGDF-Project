@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -574,10 +575,10 @@ public class PropertyGraph {
                                 if(data.equals("Null")){
                                     declaration = declaration +"N;";
                                 }
-                                else if(data.equals("true")){
+                                else if(data.equals("true") || data.equals("True") || data.equals("TRUE")){
                                     declaration = declaration +"T;";
                                 }
-                                else if(data.equals("false")){
+                                else if(data.equals("false") || data.equals("False") || data.equals("FALSE")){
                                     declaration = declaration +"F;";
                                 }
                                 else if(data.matches("[-+]?[0-9]*\\.?[0-9]+")) {
@@ -620,7 +621,7 @@ public class PropertyGraph {
                         for(int i = 0; i < numNodeProps; i++){
                             declaration = declaration +";";
                         }
-                        if(rs.getString(3).equals("true")){
+                        if(rs.getString(3).equals("True")){
                             declaration = declaration + "T;";
                         }else{
                             declaration = declaration + "F;";
@@ -635,10 +636,10 @@ public class PropertyGraph {
                                 if(data.equals("Null")){
                                     declaration = declaration +"N;";
                                 }
-                                else if(data.equals("true")){
+                                else if(data.equals("true") || data.equals("True") || data.equals("TRUE")){
                                     declaration = declaration +"T;";
                                 }
-                                else if(data.equals("false")){
+                                else if(data.equals("false") || data.equals("False") || data.equals("FALSE")){
                                     declaration = declaration +"F;";
                                 }
                                 else if(data.matches("[-+]?[0-9]*\\.?[0-9]+")) {
@@ -1053,7 +1054,7 @@ public class PropertyGraph {
                             }
                             for(String v : value){
                                 if(v == null){
-                                    data = data + "N";
+                                    data = data + "null";
                                 }
                                 else if(v.matches("[-+]?[0-9]*\\.?[0-9]+")){
                                     if(v.contains(".")){
@@ -1664,19 +1665,21 @@ public class PropertyGraph {
         }
     }
     
-    public void exportToGraphSon (String directory, String fileName) throws IOException {
+    public void exportToGraphSon (String directory, String fileName) throws IOException, SQLException {
         if(this.storageType.equals("memory")){
-            try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"))) {
-                
+            try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".graphson"),"UTF-8"))) {
+                 
                 StringBuilder sb = new StringBuilder();
-                
+                HashMap<String,Long> idNodes = new HashMap<>();
+                long idValue = 0;
                 //Graph Info
                 sb.setLength(0);
                 sb.append("{\n");
                 sb.append("\t"+"\"graph\": {\n");
                 sb.append("\t\t"+"\"mode\":\"NORMAL\",\n");                
                 sb.append("\t\t"+"\"vertices\": [\n");
-                
+                String outTabs = "\t\t\t";
+                String inTabs = "\t\t\t\t";
                 writer.write(sb.toString());
                 
                 //Node Info
@@ -1688,8 +1691,7 @@ public class PropertyGraph {
                     "_id": ID,
                     "_type": "vertex"
                 */
-                String outTabs = "\t\t\t";
-                String inTabs = "\t\t\t\t";
+                
                 if(this.nodes.size() > 0){
                     for(int i = 0; i < this.nodes.size(); i++){
                         Node n = this.nodes.get(i);
@@ -1697,10 +1699,66 @@ public class PropertyGraph {
                         sb.append(outTabs).append("{\n");
                         
                         for(Property p: n.getProperties()){                            
-                            // "KEY": "VALUE",                            
-                            sb.append(inTabs).append("\"").append(p.getKey()).append("\": \"").append(p.getValue()).append("\",\n");
+                            // "KEY": "VALUE",
+                            List<String> pValues = p.getValue();
+                            StringBuilder propData = new StringBuilder();
+                            
+                            if(pValues == null){
+                                sb.append(inTabs).append("\"").append(p.getKey()).append("\": ").append("null").append(",\n");
+                            }
+                            else{
+                                if(pValues.size() > 1){
+                                    propData.append("[");
+                                }
+                                for(int j = 0; j < pValues.size(); j++){
+                                    String pv = pValues.get(j);                                
+                                    //.matches("[-+]?[0-9]*\\.?[0-9]+")                                
+                                    if(pv == null ||pv.equals("Null") || pv.equals("null") ){
+                                        propData.append("null");                                   
+                                    }
+                                    else if(pv.matches("[-+]?[0-9]*\\.?[0-9]+")){   
+                                        if(pv.contains(".")){
+                                            propData.append(Float.parseFloat(pv));                                            
+                                        }
+                                        else{                                        
+                                            BigInteger num = new BigInteger(pv);
+                                            propData.append(num);
+                                        }
+                                    }
+                                    else if(pv.equals("True") || pv.equals("true")){
+                                        propData.append("true");
+                                    }
+                                    else if(pv.equals("False") || pv.equals("false")){
+                                        propData.append("false");                                                                            
+                                    }
+                                    else{
+                                        propData.append("\"").append(pv).append("\"");
+                                    }
+                                    if(j+1 < pValues.size()){
+                                        propData.append(", ");
+                                    }
+                                }
+                                if(pValues.size() > 1){
+                                    propData.append("]");
+                                }                            
+                                sb.append(inTabs).append("\"").append(p.getKey()).append("\": ").append(propData.toString()).append(",\n");
+                            }
                         }
-                        sb.append(inTabs).append("\"_id\": \"").append(n.getId()).append("\",\n");
+                        if(!n.getLabels().isEmpty()){
+                            List<String> labels = n.getLabels();
+                            sb.append(inTabs).append("\"labels:\": [");
+                            for(int j = 0; j<labels.size(); j++){
+                                sb.append("\"").append(labels.get(j)).append("\"");
+                                if(j+1 < labels.size()){
+                                    sb.append(",");
+                                }
+                            }
+                            sb.append("],\n");
+                            
+                        }                        
+                        idNodes.put(n.getId(), idValue);
+                        sb.append(inTabs).append("\"_id\": \"").append(idValue).append("\",\n");
+                        idValue++;
                         sb.append(inTabs).append("\"_type\": \"vertex\"\n");                                                
                         sb.append(outTabs).append("}");
                         
@@ -1734,15 +1792,65 @@ public class PropertyGraph {
                         sb.setLength(0);
                         sb.append(outTabs).append("{\n");
                         for(Property p: e.getProperties()){                            
-                            // "KEY": "VALUE",                            
-                            sb.append(inTabs).append("\"").append(p.getKey()).append("\": \"").append(p.getValue()).append("\",\n");
+                            // "KEY": "VALUE",                           
+                            List<String> pValues = p.getValue();
+                            StringBuilder propData = new StringBuilder();
+                            
+                            if(pValues == null){
+                                sb.append(inTabs).append("\"").append(p.getKey()).append("\": ").append("null").append(",\n");
+                            }
+                            else{
+                                if(pValues.size() > 1){
+                                    propData.append("[");
+                                }
+                                for(int j = 0; j < pValues.size(); j++){
+                                    String pv = pValues.get(j);                                
+                                    //.matches("[-+]?[0-9]*\\.?[0-9]+")                                
+                                    if(pv == null ||pv.equals("Null") || pv.equals("null") ){
+                                        propData.append("null");                                   
+                                    }
+                                    else if(pv.matches("[-+]?[0-9]*\\.?[0-9]+")){   
+                                        if(pv.contains(".")){
+                                            propData.append(Float.parseFloat(pv));                                            
+                                        }
+                                        else{                                        
+                                            BigInteger num = new BigInteger(pv);
+                                            propData.append(num);
+                                        }
+                                    }
+                                    else if(pv.equals("True") || pv.equals("true")){
+                                        propData.append("true");
+                                    }
+                                    else if(pv.equals("False") || pv.equals("false")){
+                                        propData.append("false");                                                                            
+                                    }
+                                    else{
+                                        propData.append("\"").append(pv).append("\"");
+                                    }
+                                    if(j+1 < pValues.size()){
+                                        propData.append(", ");
+                                    }
+                                }
+                                if(pValues.size() > 1){
+                                    propData.append("]");
+                                }                            
+                                sb.append(inTabs).append("\"").append(p.getKey()).append("\": ").append(propData.toString()).append(",\n");
+                            }
                         }
-                        sb.append(inTabs).append("\"_id\": \"").append(e.getId()).append("\",\n");
+                        
+                        sb.append(inTabs).append("\"_id\": \"").append(idValue).append("\",\n");
+                        idValue++;
                         sb.append(inTabs).append("\"_type\": \"edge\",\n");     
                         
-                        sb.append(inTabs).append("\"_outV\": \"").append(e.getSource()).append("\",\n");
-                        sb.append(inTabs).append("\"_inV\": \"").append(e.getTarget()).append("\",\n");
-                        sb.append(inTabs).append("\"_label\": \"").append(e.getLabels()).append("\"\n");
+                        sb.append(inTabs).append("\"_outV\": \"").append(idNodes.get(e.getSource())).append("\",\n");
+                        sb.append(inTabs).append("\"_inV\": \"").append(idNodes.get(e.getTarget())).append("\",\n");
+                        if(!e.getLabels().isEmpty()){
+                            sb.append(inTabs).append("\"_label\": \"").append(e.getLabels()).append("\"\n");
+                        }
+                        else{
+                            sb.append(inTabs).append("\"_label\": \"").append("edge").append("\"\n");
+                        }
+                        
                         
                         sb.append(outTabs).append("}");
                         
@@ -1761,21 +1869,202 @@ public class PropertyGraph {
             }
         }
         else{
-            
+            try (Writer bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".graphson"),"UTF-8"));) {
+                try (Connection conn = DriverManager.getConnection(this.url)) {
+                    Statement stmt = conn.createStatement();
+
+                    StringBuilder sb = new StringBuilder();
+                    HashMap<String,Long> idNodes = new HashMap<>();
+                    long idValue = 0;
+                    //Graph Info
+                    sb.setLength(0);
+                    sb.append("{\n");
+                    sb.append("\t"+"\"graph\": {\n");
+                    sb.append("\t\t"+"\"mode\":\"NORMAL\",\n");                
+                    sb.append("\t\t"+"\"vertices\": [\n");
+                    String outTabs = "\t\t\t";
+                    String inTabs = "\t\t\t\t";
+                    bw.write(sb.toString());
+                    
+                    String sql = "SELECT * FROM nodeData";                
+                    ResultSet rs = stmt.executeQuery(sql);
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    
+                    //NODE INFO
+                    /*
+                        props...
+                        ...
+                        ...
+                        "_id": ID,
+                        "_type": "vertex"
+                    */
+                    boolean flag = false;
+                    while (rs.next()) {
+                        sb.setLength(0);
+                        if(!flag){
+                            sb.append(outTabs).append("{\n");
+                            flag = true;
+                        }
+                        else{
+                            sb.append(",\n").append(outTabs).append("{\n");
+                        }
+                        
+                        if (rsmd.getColumnCount() > 2) {                           
+                            for (int i = 3; i <= rsmd.getColumnCount(); i++) {
+                                String value = rs.getString(i);
+                                if (value != null) {
+                                    if (value.startsWith("[") && value.endsWith("]")) {
+                                        //pasarlo a lista
+                                        if (value.equals("[]") || value.equals("[ ]")) {
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("[]").append(",\n");
+                                        } else {
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append(value).append(",\n");
+                                        }
+                                    } else if (value.matches("[-+]?[0-9]*\\.?[0-9]+")) {
+                                        if (value.contains(".")) {
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append(Float.parseFloat(value)).append(",\n");
+                                        } else {
+                                            //sb.append(Integer.parseInt(value));
+                                            BigInteger num = new BigInteger(value);
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append(num).append(",\n");
+                                        }
+                                    } else if (value.equals("true") || value.equals("TRUE")|| value.equals("True")) {
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("true").append(",\n");
+                                    } else if (value.equals("false") || value.equals("FALSE") || value.equals("False")) {
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("false").append(",\n");
+                                    } else if( value.equals("Null")){
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("null").append(",\n");
+                                    } else{
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": \"").append(value).append("\",\n");
+                               
+                                    }
+                                }
+                            }                                                      
+                        }
+                        if(!(rs.getString(2) == null)){
+                            sb.append(inTabs).append("\"labels:\": ").append(rs.getString(2)).append(",\n");                                
+                        }                        
+                        idNodes.put(rs.getString(1), idValue);
+                        sb.append(inTabs).append("\"_id\": \"").append(idValue).append("\",\n");
+                        idValue++;
+                        sb.append(inTabs).append("\"_type\": \"vertex\"\n");                                                
+                        sb.append(outTabs).append("}");
+                        
+                        bw.write(sb.toString());
+                    }
+                    bw.write("\n\t\t" + "],\n");
+                    bw.write("\t\t" + "\"edges\": [\n");
+                    
+                    //EDGE DATA
+                    /*
+                        props...
+                        ...
+                        ...
+                        ...
+                        "_id": "ID",
+                        "_type": "edge",
+                        "_outV": "1",
+                        "_inV": "2",
+                        "_label": "knows"
+                    */
+                    sql = "SELECT * FROM edgeData";                
+                    rs = stmt.executeQuery(sql);
+                    rsmd = rs.getMetaData();
+                    
+                    flag = false;
+                    while (rs.next()) {
+                        sb.setLength(0);
+                        if(!flag){
+                            sb.append(outTabs).append("{\n");
+                            flag = true;
+                        }
+                        else{
+                            sb.append(",\n").append(outTabs).append("{\n");
+                        }
+                        
+                        if (rsmd.getColumnCount() > 5) {                           
+                            for (int i = 6; i <= rsmd.getColumnCount(); i++) {
+                                String value = rs.getString(i);
+                                if (value != null) {
+                                    if (value.startsWith("[") && value.endsWith("]")) {
+                                        //pasarlo a lista
+                                        if (value.equals("[]") || value.equals("[ ]")) {
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("[]").append(",\n");
+                                        } else {
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append(value).append(",\n");
+                                        }
+                                    } else if (value.matches("[-+]?[0-9]*\\.?[0-9]+")) {
+                                        if (value.contains(".")) {
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append(Float.parseFloat(value)).append(",\n");
+                                        } else {
+                                            //sb.append(Integer.parseInt(value));
+                                            BigInteger num = new BigInteger(value);
+                                            sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append(num).append(",\n");
+                                        }
+                                    } else if (value.equals("true") || value.equals("TRUE")|| value.equals("True")) {
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("true").append(",\n");
+                                    } else if (value.equals("false") || value.equals("FALSE") || value.equals("False")) {
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("false").append(",\n");
+                                    } else if( value.equals("Null")){
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": ").append("null").append(",\n");
+                                    } else{
+                                        sb.append(inTabs).append("\"").append(rsmd.getColumnLabel(i)).append("\": \"").append(value).append("\",\n");
+                               
+                                    }
+                                }
+                            }                                                      
+                        }
+                                                                     
+                        sb.append(inTabs).append("\"_id\": \"").append(idValue).append("\",\n");
+                        idValue++;
+                        sb.append(inTabs).append("\"_type\": \"edge\",\n");     
+                        //outV
+                        sb.append(inTabs).append("\"_outV\": \"").append(idNodes.get(rs.getString(4))).append("\",\n");     
+                        //intV
+                        sb.append(inTabs).append("\"_inV\": \"").append(idNodes.get(rs.getString(5))).append("\",\n");    
+                        //label
+                        if(!(rs.getString(2) == null) && !rs.getString(2).equals("[]")){
+                            sb.append(inTabs).append("\"_label\": \"").append(rs.getString(2).replace("\"","")).append("\"\n");                                
+                        }
+                        else{
+                            sb.append(inTabs).append("\"_label\": \"edge\"\n");        
+                        }
+                        sb.append(outTabs).append("}");
+                        
+                        bw.write(sb.toString());
+                    }
+                    bw.write("\n\t\t" + "]\n");
+                    bw.write("\t" + "}\n");
+                    bw.write("}");
+                }
+            }
         }
     }
     
-    public void exportToGraphSon3(String directory, String fileName) throws IOException{
+    public void exportToGraphSon3(String directory, String fileName) throws IOException, SQLException{
         if(this.storageType.equals("memory")){
             try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"))) {
                 StringBuilder sb = new StringBuilder();
-                int count32 = 0;                         
+                int id32 = 1;     
+                int id64 = 1;
+                HashMap<String,Integer> nodeID = new HashMap<>();
+                HashMap<String,Integer> edgeID = new HashMap<>();
                 for(Node n: this.nodes){
                     sb.setLength(0);
                     //Inicia declaracion de nodo
-                    sb.append("{\"id\":\"").append(n.getId()).append("\",");
-                    sb.append("\"label\":\"").append(n.getLabels()).append("\"");
+                    if(!nodeID.containsKey(n.getId())){
+                        nodeID.put(n.getId(), id32);
+                        id32++;
+                    }
+                    sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(n.getId())).append("},");
                     
+                    if(n.getLabels().isEmpty()){
+                        sb.append("\"label\":\"vertex\"");
+                    }
+                    else{
+                        sb.append("\"label\":\"").append(n.getLabels()).append("\"");
+                    }
+                                        
                     writer.write(sb.toString());
                     
                     //Declaracion de aristas
@@ -1783,79 +2072,403 @@ public class PropertyGraph {
                     sb.setLength(0);
                     List<Edge> inE = new ArrayList<>();
                     List<Edge> outE = new ArrayList<>();
-                    for(int i = 0; i< this.edges.size(); i++){
+                    for(int i = 0; i< this.edges.size(); i++){                        
                         Edge e = this.edges.get(i);
-                        if(e.getSource().equals(n.getId())){
+                        if(!edgeID.containsKey(e.getId())){
+                            edgeID.put(e.getId(), id32);
+                            id32++;
+                        }
+                        if(e.getUndirected() && (e.getSource().equals(n.getId()) || e.getTarget().equals(n.getId()) )){
+                            inE.add(e);
                             outE.add(e);
                         }
-                        if(e.getTarget().equals(n.getId())){
-                            inE.add(e);
-                        }
+                        else{
+                            if(e.getSource().equals(n.getId())){
+                                outE.add(e);
+                            }
+                            if(e.getTarget().equals(n.getId())){
+                                inE.add(e);
+                            }
+                        }                        
                     }
-                        //Aristas que llegan                        
+                    
+                    //ARISTAS QUE LLEGAN                       
                     
                     if(!inE.isEmpty()){
-                        List<String> writedLabel = new ArrayList<>();
-                        sb.append(",");
-                        sb.append("\"inE\":{");
-                        
-                        for(Edge e: inE){
-                            List<String> labels = e.getLabels();
+                        sb.append(",\"inE\":{");
+                        List<String> labels_ready = new ArrayList<>();
+                        for(int a = 0; a < inE.size(); a++){
+                            Edge e = inE.get(a);
+                           
+                            List<String> eLabels = e.getLabels();
                             
-                            for(String l: labels){
-                                if(writedLabel.contains(l)){
-                                    break;
+                            if(eLabels.isEmpty()){
+                                if(labels_ready.contains("label")){
+                                    continue;
                                 }
-                                sb.append("\"").append(l).append("\":[");
-                                sb.append("{\"id\":\"").append(e.getId()).append("\",\"outV\":\"").append(e.getSource()).append("\"");
-                                if(!e.getProperties().isEmpty()){
-                                    sb.append(",\"properties\":");
-                                    List<Property> props = e.getProperties();
-                                    for(int i = 0; i < props.size(); i++){
-                                        Property p = props.get(i);
+                                sb.append("\"edge\":[");                                
+                                sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e.getId())).append("},");
+                                if(!nodeID.containsKey(e.getSource())){
+                                    nodeID.put(e.getSource(), id32);
+                                    id32++;
+                                }
+                                sb.append("\"outV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e.getSource())).append("}");
+                                
+                                List<Property> props = e.getProperties();
+                                
+                                if(!props.isEmpty()){
+                                    sb.append(",");
+                                    sb.append("\"properties\":{");
+                                    
+                                    for(Property p: props){
                                         sb.append("\"").append(p.getKey()).append("\":[");
-                                        sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(count32).append("}");;
-                                        count32+=1;
-                                        sb.append(",\"value\":\"").append(p.getValue()).append("\"}]");
-
-                                        if(i+1 < props.size()){
-                                            sb.append(",");
+                                        List<String> values = p.getValue();
+                                        for(int i = 0; i < values.size(); i++){
+                                            String v = values.get(i);
+                                            sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                            id64++;
+                                            sb.append("\"value\":\"").append(v).append("\"}");
+                                            if(i+1 < values.size()){
+                                                sb.append(",");
+                                            }
                                         }
+                                        sb.append("]");
                                     }
                                     sb.append("}");
                                 }
+                                sb.append("}");
+                                //otros con mismo labels
                                 
-                                for(int i = 1; i < inE.size(); i++){
-                                    Edge e2 = inE.get(i);
-                                    List<String> labels2 = e2.getLabels();
-                                    if(labels2.contains(l)){
-                                        sb.append("{\"id\":\"").append(e2.getId()).append("\",\"outV\":\"").append(e2.getSource()).append("\"");
-                                        if(!e2.getProperties().isEmpty()){
-                                            sb.append(",\"properties\":");
-                                            List<Property> props2 = e2.getProperties();
-                                            for(int j = 0; j < props2.size(); j++){
-                                                Property p = props2.get(j);
-                                                sb.append("\"").append(p.getKey()).append("\":[");
-                                                sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(count32).append("}");;
-                                                count32+=1;
-                                                sb.append(",\"value\":\"").append(p.getValue()).append("\"}]");
+                                for(int c = a+1; c < inE.size(); c++){
+                                    Edge e2 = inE.get(c);
+                                    List<String> e2Labels = e2.getLabels();
+                                    if(!e2Labels.isEmpty()){
+                                        continue;
+                                    }                                    
+                                    sb.append(",{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e2.getId())).append("},");
+                                    if(!nodeID.containsKey(e2.getSource())){
+                                        nodeID.put(e2.getSource(), id32);
+                                        id32++;
+                                    }
+                                    sb.append("\"outV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e2.getSource())).append("}");
 
-                                                if(j+1 < props2.size()){
+                                    List<Property> props2 = e2.getProperties();
+
+                                    if(!props2.isEmpty()){
+                                        sb.append(",");
+                                        sb.append("\"properties\":{");
+
+                                        for(Property p: props2){
+                                            sb.append("\"").append(p.getKey()).append("\":[");
+                                            List<String> values = p.getValue();
+                                            for(int i = 0; i < values.size(); i++){
+                                                String v = values.get(i);
+                                                sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                                id64++;
+                                                sb.append("\"value\":\"").append(v).append("\"}");
+                                                if(i+1 < values.size()){
                                                     sb.append(",");
                                                 }
                                             }
-                                            sb.append("}");
+                                            sb.append("]");
                                         }
+                                        sb.append("}");
                                     }
+                                    sb.append("}");                                                                                                                       
                                 }
                                 
-                                writedLabel.add(l);
+                                sb.append("]");
+                                labels_ready.add("label");
                             }
-                            sb.append("]}");
+                            else{
+                                for(int b = 0; b < eLabels.size(); b++){
+                                    String l = eLabels.get(b);
+                                    if(labels_ready.contains(l)){
+                                        continue;
+                                    }
+                                    sb.append("\"").append(l).append("\":[");
+                                    sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e.getId())).append("},");
+                                    if(!nodeID.containsKey(e.getSource())){
+                                        nodeID.put(e.getSource(), id32);
+                                        id32++;
+                                    }
+                                    sb.append("\"outV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e.getSource())).append("}");
+                                    
+                                    List<Property> props = e.getProperties();
+                                    
+                                    if(!props.isEmpty()){
+                                        sb.append(",");
+                                        sb.append("\"properties\":{");
+
+                                        for(Property p: props){
+                                            sb.append("\"").append(p.getKey()).append("\":[");
+                                            List<String> values = p.getValue();
+                                            for(int i = 0; i < values.size(); i++){
+                                                String v = values.get(i);
+                                                sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                                id64++;
+                                                sb.append("\"value\":\"").append(v).append("\"}");
+                                                if(i+1 < values.size()){
+                                                    sb.append(",");
+                                                }
+                                            }
+                                            sb.append("]");
+                                        }
+                                        sb.append("}");
+                                    }
+                                    sb.append("}");
+                                    
+                                    //otros con mismo labels
+                                    for(int c = a+1; c < inE.size(); c++){
+                                        Edge e2 = inE.get(c);
+                                        List<String> e2Labels = e2.getLabels();
+                                        if(e2Labels.isEmpty()){
+                                            continue;
+                                        }
+                                        for(int d = 0; d < e2Labels.size(); d++){
+                                            String l2 = e2Labels.get(d);
+                                            if(l2.equals(l)){
+                                                sb.append(",{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e2.getId())).append("},");
+                                                if(!nodeID.containsKey(e2.getSource())){
+                                                    nodeID.put(e2.getSource(), id32);
+                                                    id32++;
+                                                }
+                                                sb.append("\"outV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e2.getSource())).append("}");
+
+                                                List<Property> props2 = e2.getProperties();
+
+                                                if(!props2.isEmpty()){
+                                                    sb.append(",");
+                                                    sb.append("\"properties\":{");
+
+                                                    for(Property p: props2){
+                                                        sb.append("\"").append(p.getKey()).append("\":[");
+                                                        List<String> values = p.getValue();
+                                                        for(int i = 0; i < values.size(); i++){
+                                                            String v = values.get(i);
+                                                            sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                                            id64++;
+                                                            sb.append("\"value\":\"").append(v).append("\"}");
+                                                            if(i+1 < values.size()){
+                                                                sb.append(",");
+                                                            }
+                                                        }
+                                                        sb.append("]");
+                                                    }
+                                                    sb.append("}");
+                                                }
+                                                sb.append("}");                                                
+                                            }
+                                        }                                        
+                                    }
+                                    labels_ready.add(l);
+                                    sb.append("]");
+                                    if(b+1 < eLabels.size()){
+                                        sb.append(",");
+                                    }
+                                }
+                                if(sb.charAt(sb.length()-1) == ','){
+                                    sb.setLength(sb.length()-1);
+                                }
+                            }
+                            if(a+1 < inE.size()){
+                                sb.append(",");
+                            }
                         }
-                        writer.write(sb.toString());
+                        if(sb.charAt(sb.length()-1) == ','){
+                                    sb.setLength(sb.length()-1);
+                                }
+                        sb.append("}");
                     }
-                        //Aristas que salen
+                    writer.write(sb.toString());
+                    
+                    //ARISTAS QUE SALEN
+                    
+                    sb.setLength(0);
+                    if(!outE.isEmpty()){
+                        sb.append(",\"outE\":{");
+                        List<String> labels_ready = new ArrayList<>();
+                        for(int a = 0; a < outE.size(); a++){
+                            Edge e = outE.get(a);
+                           
+                            List<String> eLabels = e.getLabels();
+                            
+                            if(eLabels.isEmpty()){
+                                if(labels_ready.contains("label")){
+                                    continue;
+                                }
+                                sb.append("\"edge\":[");                                
+                                sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e.getId())).append("},");
+                                if(!nodeID.containsKey(e.getSource())){
+                                    nodeID.put(e.getSource(), id32);
+                                    id32++;
+                                }
+                                sb.append("\"inV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e.getSource())).append("}");
+                                
+                                List<Property> props = e.getProperties();
+                                
+                                if(!props.isEmpty()){
+                                    sb.append(",");
+                                    sb.append("\"properties\":{");
+                                    
+                                    for(Property p: props){
+                                        sb.append("\"").append(p.getKey()).append("\":[");
+                                        List<String> values = p.getValue();
+                                        for(int i = 0; i < values.size(); i++){
+                                            String v = values.get(i);
+                                            sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                            id64++;
+                                            sb.append("\"value\":\"").append(v).append("\"}");
+                                            if(i+1 < values.size()){
+                                                sb.append(",");
+                                            }
+                                        }
+                                        sb.append("]");
+                                    }
+                                    sb.append("}");
+                                }
+                                sb.append("}");
+                                //otros con mismo labels
+                                
+                                for(int c = a+1; c < outE.size(); c++){
+                                    Edge e2 = outE.get(c);
+                                    List<String> e2Labels = e2.getLabels();
+                                    if(!e2Labels.isEmpty()){
+                                        continue;
+                                    }                                    
+                                    sb.append(",{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e2.getId())).append("},");
+                                    if(!nodeID.containsKey(e2.getSource())){
+                                        nodeID.put(e2.getSource(), id32);
+                                        id32++;
+                                    }
+                                    sb.append("\"inV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e2.getSource())).append("}");
+
+                                    List<Property> props2 = e2.getProperties();
+
+                                    if(!props2.isEmpty()){
+                                        sb.append(",");
+                                        sb.append("\"properties\":{");
+
+                                        for(Property p: props2){
+                                            sb.append("\"").append(p.getKey()).append("\":[");
+                                            List<String> values = p.getValue();
+                                            for(int i = 0; i < values.size(); i++){
+                                                String v = values.get(i);
+                                                sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                                id64++;
+                                                sb.append("\"value\":\"").append(v).append("\"}");
+                                                if(i+1 < values.size()){
+                                                    sb.append(",");
+                                                }
+                                            }
+                                            sb.append("]");
+                                        }
+                                        sb.append("}");
+                                    }
+                                    sb.append("}");                                                                                                                       
+                                }
+                                
+                                sb.append("]");
+                                labels_ready.add("label");
+                            }
+                            else{
+                                for(int b = 0; b < eLabels.size(); b++){
+                                    String l = eLabels.get(b);
+                                    if(labels_ready.contains(l)){
+                                        continue;
+                                    }
+                                    sb.append("\"").append(l).append("\":[");
+                                    sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e.getId())).append("},");
+                                    if(!nodeID.containsKey(e.getSource())){
+                                        nodeID.put(e.getSource(), id32);
+                                        id32++;
+                                    }
+                                    sb.append("\"inV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e.getSource())).append("}");
+                                    
+                                    List<Property> props = e.getProperties();
+                                    
+                                    if(!props.isEmpty()){
+                                        sb.append(",");
+                                        sb.append("\"properties\":{");
+
+                                        for(Property p: props){
+                                            sb.append("\"").append(p.getKey()).append("\":[");
+                                            List<String> values = p.getValue();
+                                            for(int i = 0; i < values.size(); i++){
+                                                String v = values.get(i);
+                                                sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                                id64++;
+                                                sb.append("\"value\":\"").append(v).append("\"}");
+                                                if(i+1 < values.size()){
+                                                    sb.append(",");
+                                                }
+                                            }
+                                            sb.append("]");
+                                        }
+                                        sb.append("}");
+                                    }
+                                    sb.append("}");
+                                    
+                                    //otros con mismo labels
+                                    for(int c = a+1; c < outE.size(); c++){
+                                        Edge e2 = outE.get(c);
+                                        List<String> e2Labels = e2.getLabels();
+                                        if(e2Labels.isEmpty()){
+                                            continue;
+                                        }
+                                        for(int d = 0; d < e2Labels.size(); d++){
+                                            String l2 = e2Labels.get(d);
+                                            if(l2.equals(l)){
+                                                sb.append(",{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(edgeID.get(e2.getId())).append("},");
+                                                if(!nodeID.containsKey(e2.getSource())){
+                                                    nodeID.put(e2.getSource(), id32);
+                                                    id32++;
+                                                }
+                                                sb.append("\"inV\":{\"@type\":\"g:Int32\",\"@value\":").append(nodeID.get(e2.getSource())).append("}");
+
+                                                List<Property> props2 = e2.getProperties();
+
+                                                if(!props2.isEmpty()){
+                                                    sb.append(",");
+                                                    sb.append("\"properties\":{");
+
+                                                    for(Property p: props2){
+                                                        sb.append("\"").append(p.getKey()).append("\":[");
+                                                        List<String> values = p.getValue();
+                                                        for(int i = 0; i < values.size(); i++){
+                                                            String v = values.get(i);
+                                                            sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("},");
+                                                            id64++;
+                                                            sb.append("\"value\":\"").append(v).append("\"}");
+                                                            if(i+1 < values.size()){
+                                                                sb.append(",");
+                                                            }
+                                                        }
+                                                        sb.append("]");
+                                                    }
+                                                    sb.append("}");
+                                                }
+                                                sb.append("}");                                                
+                                            }
+                                        }                                        
+                                    }
+                                    labels_ready.add(l);
+                                    sb.append("]");
+                                    if(b+1 < eLabels.size()){
+                                        sb.append(",");
+                                    }
+                                }
+                                if(sb.charAt(sb.length()-1) == ','){
+                                    sb.setLength(sb.length()-1);
+                                }
+                            }
+                            if(a+1 < outE.size()){
+                                sb.append(",");
+                            }
+                        }
+                        sb.append("}");
+                    }
+                    writer.write(sb.toString());
                     
                     //Declaracion de Propiedades del nodo
                                         
@@ -1867,8 +2480,8 @@ public class PropertyGraph {
                        for(int i = 0; i < props.size(); i++){
                            Property p = props.get(i);
                            sb.append("\"").append(p.getKey()).append("\":[");
-                           sb.append("{\"id\":{\"@type\":\"g:Int32\",\"@value\":").append(count32).append("}");;
-                           count32+=1;
+                           sb.append("{\"id\":{\"@type\":\"g:Int64\",\"@value\":").append(id64).append("}");;
+                           id64+=1;
                            sb.append(",\"value\":\"").append(p.getValue()).append("\"}]");
                            
                            if(i+1 < props.size()){
@@ -1884,7 +2497,42 @@ public class PropertyGraph {
             }
         }
         else{
-            
+            try (Writer bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(fileName+".json"),"UTF-8"));) {
+                try (Connection conn = DriverManager.getConnection(this.url)) {
+                    Statement stmt = conn.createStatement();
+
+                    String sql = "SELECT * FROM nodeData";                
+                    ResultSet nodeInfo = stmt.executeQuery(sql);
+                    ResultSetMetaData nodeProps = nodeInfo.getMetaData();
+                    
+                    
+                    StringBuilder sb = new StringBuilder();
+                    while(nodeInfo.next()){
+                        sb.setLength(0);
+                        
+                        String nID = nodeInfo.getString(1);                        
+                        sb.append("{\"id\":\"").append(nID).append("\",");
+                        sb.append("\"label\":\"").append(nodeInfo.getString(2)).append("\"");
+                        
+                        
+                        //ARISTAS QUE LLEGAN
+                        
+                        sql = "SELECT * FROM edgeData WHERE target = '" + nID + "' OR ( (source = '"+nID+"' or target = '"+nID+"') AND undirected = true)"; ;
+                        
+                        ResultSet edgeInfo = stmt.executeQuery(sql);
+                        ResultSetMetaData edgeProps = nodeInfo.getMetaData();
+                        
+                        while(edgeInfo.next()){
+                            //edgeInfo.to
+                        }
+                        
+                        //ARISTAS QUE SALEN
+                        
+                        
+                        //PORPIEDADES DEL NODO
+                    }
+                }
+            }
         }
     }
 
@@ -2130,6 +2778,8 @@ public class PropertyGraph {
                             if(values.length < (2+numNodeProps +3)){
                                 //ES NODO
                                 String id = values[0].substring(1,values[0].length()-1);
+                                pstmtN.clearParameters();
+                                
                                 pstmtN.setString(1,id);
                                 pstmtN.setString(2,values[1]);
                                 for(int i = 2; i < values.length ; i++){
@@ -2151,7 +2801,7 @@ public class PropertyGraph {
                                             pstmtN.setString(i+1,values[i]);
                                         }
                                     }
-                                    else{
+                                    else{                                        
                                         pstmtN.setNull(i+1,java.sql.Types.NULL);
                                     }
                                 }                                

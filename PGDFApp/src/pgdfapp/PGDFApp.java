@@ -107,14 +107,14 @@ public class PGDFApp {
                 endTime   = System.nanoTime();
                 totalTime = endTime - startTime;
                 System.out.println("export json time: "+(totalTime/1000000) +"ms");
-//                startTime = System.nanoTime();
-//                pg.exportToGraphSon("", "output");
-//                endTime   = System.nanoTime();
-//                totalTime = endTime - startTime;
-//                System.out.println("export graphson time: "+(totalTime/1000000) +"ms");
+                startTime = System.nanoTime();
+                pg.exportToGraphSon("", "output");
+                endTime   = System.nanoTime();
+                totalTime = endTime - startTime;
+                System.out.println("export graphson time: "+(totalTime/1000000) +"ms");
                 break;
             default:
-                System.out.println("Output type can only be 'pgdf', 'gml', 'ypg' or 'json'.");
+                System.out.println("Output type can only be 'pgdf', 'gml', 'ypg', 'graphson' or 'json'.");
                 break;
         }        
     }
